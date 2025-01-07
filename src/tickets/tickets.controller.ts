@@ -1,7 +1,11 @@
 import { Controller, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
-import { findTicketDto, findTicketEndingDto, findTicketRandomDto } from './dto/find-ticket.dto';
+import {
+  findTicketDto,
+  findTicketEndingDto,
+  findTicketRandomDto,
+} from './dto/find-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 
 @Controller('tickets')

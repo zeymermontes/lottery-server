@@ -3,4 +3,3 @@ export class CreateTicketDto {
   sorteo_id: string;
   price: number;
 }
-

@@ -11,5 +11,3 @@ export class findTicketRandomDto {
   sorteo_id: string;
   cantidad: number;
 }
-
-
