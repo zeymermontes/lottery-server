@@ -99,6 +99,7 @@ export class TicketsService {
         }
         allData = [...allData, ...response.data];
       });
+
       return { message: 'Tickets found successfully', data: allData };
     } catch (error) {
       console.error('Error finding tickets', error);
