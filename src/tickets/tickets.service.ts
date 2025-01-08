@@ -19,37 +19,44 @@ export class TicketsService {
       sorteo_id: lotteryId,
       price,
     } = createTicketDto;
-
+  
     const supabase = this.supabaseService.getClient();
-
+  
     if (numberTickets > 100000) {
       throw new HttpException(
         'The maximum number of tickets that can be created is 100,000',
         HttpStatus.BAD_REQUEST,
       );
     }
-
+  
     try {
+      // Lote de boletos a insertar
       const tickets = Array.from({ length: numberTickets }, (_, i) => ({
         lottery_id: lotteryId,
         number: i,
         price,
       }));
-
-      const batchSize = 1000;
+  
+      const batchSize = 1000; // Lotes de 1000
+      const batchPromises = [];
+  
+      // Inserción paralela de lotes
       for (let i = 0; i < tickets.length; i += batchSize) {
         const batch = tickets.slice(i, i + batchSize);
-        const { error } = await supabase.from('tickets').insert(batch);
-
-        if (error) {
-          console.error('Error inserting batch', error);
-          throw new HttpException(
-            'An error occurred while creating the tickets',
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
+  
+        // Creación de promesas de inserción en paralelo
+        batchPromises.push(
+          supabase.from('tickets').insert(batch).then(({ error }) => {
+            if (error) {
+              throw new Error(`Error inserting batch: ${error.message}`);
+            }
+          })
+        );
       }
-
+  
+      // Esperar a que todas las inserciones se completen en paralelo
+      await Promise.all(batchPromises);
+  
       return { message: 'Tickets added successfully' };
     } catch (error) {
       console.error('Error creating tickets', error);
@@ -59,6 +66,7 @@ export class TicketsService {
       );
     }
   }
+  
 
   async find(findTicketDto: findTicketDto) {
     const { sorteo_id: lotteryId } = findTicketDto;
@@ -113,67 +121,78 @@ export class TicketsService {
   async findTicketEndingWith(findTicketEndingDto: findTicketEndingDto) {
     const { sorteo_id: lotteryId, numero: number } = findTicketEndingDto;
     const supabase = this.supabaseService.getClient();
-
+  
     if (!lotteryId) {
       throw new HttpException(
         'The lottery id is required',
         HttpStatus.BAD_REQUEST,
       );
     }
-
+  
     if (!number || isNaN(Number(number))) {
       throw new HttpException(
         'The number is required and should be a number',
         HttpStatus.BAD_REQUEST,
       );
     }
-
+  
     try {
-      let allTickets = [];
+      const pageSize = 1000;
       let from = 0;
-      let to = 999;
-
+      let to = pageSize - 1;
+      let promises = [];
+      let allTickets = [];
+  
+      // Realizar consultas en paralelo
       while (true) {
-        const { data, error, count } = await supabase
-          .from('tickets')
-          .select('*', { count: 'exact' })
-          .eq('lottery_id', lotteryId)
-          .eq('status', 'disponible')
-          .range(from, to);
-
-        if (error) {
-          throw new HttpException(
-            'An error occurred while finding the tickets',
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
-
-        if (data.length === 0) {
-          break;
-        }
-
-        allTickets = allTickets.concat(data);
-
+        promises.push(
+          supabase
+            .from('tickets')
+            .select('*')
+            .eq('lottery_id', lotteryId)
+            .eq('status', 'disponible')
+            .range(from, to)
+        );
+  
         from = to + 1;
-        to = to + 1000;
-
-        if (allTickets.length >= count) {
+        to = from + pageSize - 1;
+  
+        // Si ya tenemos 1000 resultados, esperar que se completen todas las promesas
+        if (promises.length >= 10) {  // Límite a la cantidad de peticiones en paralelo
+          const responses = await Promise.all(promises);
+          responses.forEach(({ data, error }) => {
+            if (error) {
+              throw new HttpException(
+                'An error occurred while finding the tickets',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+              );
+            }
+            if (data) {
+              allTickets = allTickets.concat(data);
+            }
+          });
+  
+          promises = [];
+        }
+  
+        if (allTickets.length >= 100000) { // Si ya hemos cargado los tickets que necesitamos
           break;
         }
       }
-
+  
+      // Filtrar los tickets que terminan con el número
       const filteredData = allTickets.filter((ticket) => {
         const numberString = ticket.number.toString();
         return numberString.endsWith(number.toString());
       });
-
+  
       if (filteredData.length === 0) {
         throw new HttpException(
           'No tickets found for this lottery and number',
           HttpStatus.NOT_FOUND,
         );
       }
-
+  
       return { message: 'Tickets found successfully', data: filteredData };
     } catch (error) {
       console.error('Error finding tickets', error);
@@ -183,6 +202,7 @@ export class TicketsService {
       );
     }
   }
+  
 
   async random(findTicketRandomDto: findTicketRandomDto) {
     const { sorteo_id: lotteryId, cantidad: quantity } = findTicketRandomDto;
