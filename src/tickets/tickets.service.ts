@@ -11,9 +11,7 @@ import { SupabaseService } from 'src/supabase/supabase.service';
 
 @Injectable()
 export class TicketsService {
-  constructor(
-    private supabaseService: SupabaseService,
-  ) {}
+  constructor(private supabaseService: SupabaseService) {}
 
   async create(createTicketDto: CreateTicketDto) {
     const {
@@ -65,6 +63,7 @@ export class TicketsService {
   async find(findTicketDto: findTicketDto) {
     const { sorteo_id: lotteryId } = findTicketDto;
     const supabase = this.supabaseService.getClient();
+
     try {
       if (!lotteryId) {
         throw new HttpException(
@@ -73,36 +72,34 @@ export class TicketsService {
         );
       }
 
+      const pageSize = 1000; // Aún usando paginación
+      const currentPageCount = 100; // Número de páginas que deseas cargar en paralelo
       let allData = [];
-let currentPage = 0;
-const pageSize = 1000;
+      const pageRequests = [];
 
-let moreData = true;
+      for (let i = 0; i < currentPageCount; i++) {
+        pageRequests.push(
+          supabase
+            .from('tickets')
+            .select('*')
+            .eq('lottery_id', lotteryId)
+            .eq('status', 'disponible')
+            .range(i * pageSize, (i + 1) * pageSize - 1),
+        );
+      }
 
-while (moreData) {
-  const { data, error } = await supabase
-    .from('tickets')
-    .select('*')
-    .eq('lottery_id', lotteryId)
-    .eq('status', 'disponible')
-    .range(currentPage * pageSize, (currentPage + 1) * pageSize - 1);
+      const responses = await Promise.all(pageRequests);
 
-  if (error) {
-    throw new HttpException(
-      'An error occurred while fetching tickets',
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
-  }
-
-  if (data.length > 0) {
-    allData = allData.concat(data);
-    currentPage++;
-  } else {
-    moreData = false;
-  }
-}
-
-return { message: 'Tickets found successfully', data: allData };
+      responses.forEach((response) => {
+        if (response.error) {
+          throw new HttpException(
+            'An error occurred while fetching tickets',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+        allData = [...allData, ...response.data];
+      });
+      return { message: 'Tickets found successfully', data: allData };
     } catch (error) {
       console.error('Error finding tickets', error);
       throw new HttpException(
@@ -115,67 +112,67 @@ return { message: 'Tickets found successfully', data: allData };
   async findTicketEndingWith(findTicketEndingDto: findTicketEndingDto) {
     const { sorteo_id: lotteryId, numero: number } = findTicketEndingDto;
     const supabase = this.supabaseService.getClient();
-  
+
     if (!lotteryId) {
       throw new HttpException(
         'The lottery id is required',
         HttpStatus.BAD_REQUEST,
       );
     }
-  
+
     if (!number || isNaN(Number(number))) {
       throw new HttpException(
         'The number is required and should be a number',
         HttpStatus.BAD_REQUEST,
       );
     }
-  
+
     try {
       let allTickets = [];
       let from = 0;
       let to = 999;
-  
+
       while (true) {
         const { data, error, count } = await supabase
           .from('tickets')
           .select('*', { count: 'exact' })
           .eq('lottery_id', lotteryId)
-          .eq('status', 'disponible') 
+          .eq('status', 'disponible')
           .range(from, to);
-  
+
         if (error) {
           throw new HttpException(
             'An error occurred while finding the tickets',
             HttpStatus.INTERNAL_SERVER_ERROR,
           );
         }
-  
+
         if (data.length === 0) {
           break;
         }
-  
+
         allTickets = allTickets.concat(data);
-  
+
         from = to + 1;
         to = to + 1000;
-  
+
         if (allTickets.length >= count) {
           break;
         }
       }
-  
-      const filteredData = allTickets.filter(ticket => {
-        const numberString = ticket.number.toString(); 
+
+      const filteredData = allTickets.filter((ticket) => {
+        const numberString = ticket.number.toString();
         return numberString.endsWith(number.toString());
       });
-  
+
       if (filteredData.length === 0) {
         throw new HttpException(
           'No tickets found for this lottery and number',
           HttpStatus.NOT_FOUND,
         );
       }
-  
+
       return { message: 'Tickets found successfully', data: filteredData };
     } catch (error) {
       console.error('Error finding tickets', error);
@@ -185,7 +182,7 @@ return { message: 'Tickets found successfully', data: allData };
       );
     }
   }
-  
+
   async random(findTicketRandomDto: findTicketRandomDto) {
     const { sorteo_id: lotteryId, cantidad: quantity } = findTicketRandomDto;
     const supabase = this.supabaseService.getClient();
@@ -250,13 +247,18 @@ return { message: 'Tickets found successfully', data: allData };
     }
 
     try {
-
       const { data, error } = await supabase
-      .from('tickets')
-      .update({ status, owner, expiration: DateTime.local().plus({ minutes: expiretionMinuts }).toISO() })
-      .eq('lottery_id', lotteryId)
-      .eq('number', number);
-      
+        .from('tickets')
+        .update({
+          status,
+          owner,
+          expiration: DateTime.local()
+            .plus({ minutes: expiretionMinuts })
+            .toISO(),
+        })
+        .eq('lottery_id', lotteryId)
+        .eq('number', number);
+
       return { message: 'Ticket updated successfully' };
     } catch (error) {
       console.error('Error updating tickets', error);
@@ -279,13 +281,12 @@ return { message: 'Tickets found successfully', data: allData };
       );
     }
 
-    const {data, error} = await supabase
-    .from('tickets')
-    .update({status: 'disponible', owner: null, expiration: null})
-    .eq('lottery_id', lotteryId);
-    
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({ status: 'disponible', owner: null, expiration: null })
+      .eq('lottery_id', lotteryId);
 
-    return { message: 'Tickets reset successfully'};
+    return { message: 'Tickets reset successfully' };
   }
 
   async delete(findTicketDto: findTicketDto) {
@@ -299,10 +300,10 @@ return { message: 'Tickets found successfully', data: allData };
       );
     }
 
-    const {data, error} = await supabase
-   .from('tickets')
-   .delete()
-   .eq('lottery_id', lotteryId);
+    const { data, error } = await supabase
+      .from('tickets')
+      .delete()
+      .eq('lottery_id', lotteryId);
 
     return { message: 'Tickets deleted successfully' };
   }
