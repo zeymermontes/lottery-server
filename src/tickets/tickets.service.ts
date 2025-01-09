@@ -412,38 +412,41 @@ export class TicketsService {
       );
     }
 
-    // Extraer el primer elemento y validar el hash
-    const [firstItem, ...rest] = updateTicketDtos;
-    const {
-      sorteo_id: lotteryId,
-      numero: number,
-      owner,
-      minutos_expiracion: expiretionMinuts,
-      status,
-      hash,
-    } = firstItem as any;
-
-    if (!hash) {
-      return { message: 'Hash is required in the first element' };
-    }
-    const hashNonce = process.env.HASH_NONCE || '';
-    console.log(
-      `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+nonce=${hashNonce}`,
-    );
-
-    const expectedHash = crypto
-      .createHash('md5')
-      .update(
-        `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+nonce=${hashNonce}`,
-      )
-      .digest('hex');
-    console.log(expectedHash);
-    if (hash !== expectedHash) {
-      return { message: 'Hash validation failed. The hash is invalid.' };
-    }
-
     const failedNumbers: number[] = [];
     const successUpdates: number[] = [];
+
+    for (const updateTicketDto of updateTicketDtos) {
+      const {
+        sorteo_id: lotteryId,
+        numero: number,
+        owner,
+        minutos_expiracion: expiretionMinuts,
+        status,
+        hash,
+      } = updateTicketDto;
+
+      ///
+      if (!hash) {
+        return { message: `Hash is required in element numero ${number}` };
+      }
+      const hashNonce = process.env.HASH_NONCE || '';
+      console.log(
+        `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+nonce=${hashNonce}`,
+      );
+
+      const expectedHash = crypto
+        .createHash('md5')
+        .update(
+          `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+nonce=${hashNonce}`,
+        )
+        .digest('hex');
+      console.log(expectedHash);
+      if (hash !== expectedHash) {
+        return {
+          message: `Hash validation failed. The hash is invalid in numero ${number}.`,
+        };
+      }
+    }
 
     for (const updateTicketDto of updateTicketDtos) {
       const {
