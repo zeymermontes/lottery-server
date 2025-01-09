@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Delete } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import {
@@ -22,6 +22,11 @@ export class TicketsController {
     return this.ticketsService.find(findTicketDto);
   }
 
+  @Post('/findAvailable')
+  findAvailable(@Body() findTicketEndingDto: findTicketEndingDto[]) {
+    return this.ticketsService.findAvailable(findTicketEndingDto);
+  }
+
   @Post('/end-with')
   findOne(@Body() findTicketEndingDto: findTicketEndingDto) {
     return this.ticketsService.findTicketEndingWith(findTicketEndingDto);
@@ -33,7 +38,7 @@ export class TicketsController {
   }
 
   @Patch('/update')
-  remove(@Body() updateTicketDto: UpdateTicketDto) {
+  remove(@Body() updateTicketDto: UpdateTicketDto[]) {
     return this.ticketsService.update(updateTicketDto);
   }
 
