@@ -4,4 +4,5 @@ export class UpdateTicketDto {
   owner: string;
   minutos_expiracion: number;
   status: string;
+  hash: string;
 }

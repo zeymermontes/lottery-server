@@ -8,6 +8,7 @@ import {
   findTicketRandomDto,
 } from './dto/find-ticket.dto';
 import { SupabaseService } from 'src/supabase/supabase.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class TicketsService {
@@ -18,8 +19,28 @@ export class TicketsService {
       cantidad_boletos: numberTickets,
       sorteo_id: lotteryId,
       price,
+      hash,
     } = createTicketDto;
     const supabase = this.supabaseService.getClient();
+
+    // Generar el hash esperado
+    const hashNonce = process.env.HASH_NONCE || '';
+    console.log(
+      `cantidad_boletos=${numberTickets}+sorteo_id=${lotteryId}+price=${price}+nonce=${hashNonce}`,
+    );
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(
+        `cantidad_boletos=${numberTickets}+sorteo_id=${lotteryId}+price=${price}+nonce=${hashNonce}`,
+      )
+      .digest('hex');
+    console.log(expectedHash);
+
+    // Validar el hash recibido
+    if (hash !== expectedHash) {
+      return { message: 'Hash validation failed. The hash is invalid.' };
+    }
+
     if (numberTickets > 100000) {
       throw new HttpException(
         'The maximum number of tickets that can be created is 100,000',
@@ -85,7 +106,7 @@ export class TicketsService {
   }
 
   async find(findTicketDto: findTicketDto) {
-    const { sorteo_id: lotteryId } = findTicketDto;
+    const { sorteo_id: lotteryId, hash } = findTicketDto;
     const supabase = this.supabaseService.getClient();
 
     try {
@@ -94,6 +115,20 @@ export class TicketsService {
           'The lottery id is required',
           HttpStatus.BAD_REQUEST,
         );
+      }
+
+      // Generar el hash esperado
+      const hashNonce = process.env.HASH_NONCE || '';
+      console.log(`sorteo_id=${lotteryId}+nonce=${hashNonce}`);
+      const expectedHash = crypto
+        .createHash('md5')
+        .update(`sorteo_id=${lotteryId}+nonce=${hashNonce}`)
+        .digest('hex');
+      console.log(expectedHash);
+
+      // Validar el hash recibido
+      if (hash !== expectedHash) {
+        return { message: 'Hash validation failed. The hash is invalid.' };
       }
 
       const pageSize = 1000; // Aún usando paginación
@@ -144,6 +179,24 @@ export class TicketsService {
       );
     }
 
+    // Extraer el primer elemento y validar el hash
+    const [firstItem, ...rest] = tickets;
+    const { sorteo_id: lotteryId, numero: number, hash } = firstItem as any;
+
+    if (!hash) {
+      return { message: 'Hash is required in the first element' };
+    }
+
+    const hashNonce = process.env.HASH_NONCE || '';
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(`numero=${number}+sorteo_id=${lotteryId}+nonce=${hashNonce}`)
+      .digest('hex');
+    console.log(expectedHash);
+    if (hash !== expectedHash) {
+      return { message: 'Hash validation failed. The hash is invalid.' };
+    }
+
     const available: findTicketEndingDto[] = [];
     const notAvailable: findTicketEndingDto[] = [];
 
@@ -191,7 +244,7 @@ export class TicketsService {
   }
 
   async findTicketEndingWith(findTicketEndingDto: findTicketEndingDto) {
-    const { sorteo_id: lotteryId, numero: number } = findTicketEndingDto;
+    const { sorteo_id: lotteryId, numero: number, hash } = findTicketEndingDto;
     const supabase = this.supabaseService.getClient();
 
     if (!lotteryId) {
@@ -206,6 +259,20 @@ export class TicketsService {
         'The number is required and should be a number',
         HttpStatus.BAD_REQUEST,
       );
+    }
+
+    // Generar el hash esperado
+    const hashNonce = process.env.HASH_NONCE || '';
+    console.log(`sorteo_id=${lotteryId}+numero=${number}+nonce=${hashNonce}`);
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(`sorteo_id=${lotteryId}+numero=${number}+nonce=${hashNonce}`)
+      .digest('hex');
+    console.log(expectedHash);
+
+    // Validar el hash recibido
+    if (hash !== expectedHash) {
+      return { message: 'Hash validation failed. The hash is invalid.' };
     }
 
     try {
@@ -278,7 +345,11 @@ export class TicketsService {
   }
 
   async random(findTicketRandomDto: findTicketRandomDto) {
-    const { sorteo_id: lotteryId, cantidad: quantity } = findTicketRandomDto;
+    const {
+      sorteo_id: lotteryId,
+      cantidad: quantity,
+      hash,
+    } = findTicketRandomDto;
     const supabase = this.supabaseService.getClient();
     if (!lotteryId) {
       throw new HttpException(
@@ -292,6 +363,22 @@ export class TicketsService {
         'The quantity is required and should be number',
         HttpStatus.BAD_REQUEST,
       );
+    }
+
+    // Generar el hash esperado
+    const hashNonce = process.env.HASH_NONCE || '';
+    console.log(
+      `sorteo_id=${lotteryId}+cantidad=${quantity}+nonce=${hashNonce}`,
+    );
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(`sorteo_id=${lotteryId}+cantidad=${quantity}+nonce=${hashNonce}`)
+      .digest('hex');
+    console.log(expectedHash);
+
+    // Validar el hash recibido
+    if (hash !== expectedHash) {
+      return { message: 'Hash validation failed. The hash is invalid.' };
     }
 
     try {
@@ -323,6 +410,36 @@ export class TicketsService {
         'A non-empty list of tickets is required',
         HttpStatus.BAD_REQUEST,
       );
+    }
+
+    // Extraer el primer elemento y validar el hash
+    const [firstItem, ...rest] = updateTicketDtos;
+    const {
+      sorteo_id: lotteryId,
+      numero: number,
+      owner,
+      minutos_expiracion: expiretionMinuts,
+      status,
+      hash,
+    } = firstItem as any;
+
+    if (!hash) {
+      return { message: 'Hash is required in the first element' };
+    }
+    const hashNonce = process.env.HASH_NONCE || '';
+    console.log(
+      `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+nonce=${hashNonce}`,
+    );
+
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(
+        `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+nonce=${hashNonce}`,
+      )
+      .digest('hex');
+    console.log(expectedHash);
+    if (hash !== expectedHash) {
+      return { message: 'Hash validation failed. The hash is invalid.' };
     }
 
     const failedNumbers: number[] = [];
