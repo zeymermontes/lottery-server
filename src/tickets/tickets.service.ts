@@ -38,7 +38,10 @@ export class TicketsService {
 
     // Validar el hash recibido
     if (hash !== expectedHash) {
-      return { message: 'Hash validation failed. The hash is invalid.' };
+      throw new HttpException(
+        'Hash validation failed. The hash is invalid.',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     if (numberTickets > 100000) {
@@ -128,7 +131,10 @@ export class TicketsService {
 
       // Validar el hash recibido
       if (hash !== expectedHash) {
-        return { message: 'Hash validation failed. The hash is invalid.' };
+        throw new HttpException(
+          'Hash validation failed. The hash is invalid.',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       const pageSize = 1000; // Aún usando paginación
@@ -184,7 +190,10 @@ export class TicketsService {
     const { sorteo_id: lotteryId, numero: number, hash } = firstItem as any;
 
     if (!hash) {
-      return { message: 'Hash is required in the first element' };
+      throw new HttpException(
+        'Hash validation failed. The hash is invalid.',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     const hashNonce = process.env.HASH_NONCE || '';
@@ -194,7 +203,10 @@ export class TicketsService {
       .digest('hex');
     console.log(expectedHash);
     if (hash !== expectedHash) {
-      return { message: 'Hash validation failed. The hash is invalid.' };
+      throw new HttpException(
+        'Hash validation failed. The hash is invalid.',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     const available: findTicketEndingDto[] = [];
@@ -272,7 +284,10 @@ export class TicketsService {
 
     // Validar el hash recibido
     if (hash !== expectedHash) {
-      return { message: 'Hash validation failed. The hash is invalid.' };
+      throw new HttpException(
+        'Hash validation failed. The hash is invalid.',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     try {
@@ -378,7 +393,10 @@ export class TicketsService {
 
     // Validar el hash recibido
     if (hash !== expectedHash) {
-      return { message: 'Hash validation failed. The hash is invalid.' };
+      throw new HttpException(
+        'Hash validation failed. The hash is invalid.',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     try {
@@ -427,7 +445,10 @@ export class TicketsService {
 
       ///
       if (!hash) {
-        return { message: `Hash is required in element numero ${number}` };
+        throw new HttpException(
+          `Hash is required in element numero ${number}`,
+          HttpStatus.FORBIDDEN,
+        );
       }
       const hashNonce = process.env.HASH_NONCE || '';
       console.log(
@@ -442,9 +463,10 @@ export class TicketsService {
         .digest('hex');
       console.log(expectedHash);
       if (hash !== expectedHash) {
-        return {
-          message: `Hash validation failed. The hash is invalid in numero ${number}.`,
-        };
+        throw new HttpException(
+          `Hash validation failed. The hash is invalid in numero ${number}.`,
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
 
@@ -566,7 +588,10 @@ export class TicketsService {
 
     // Validar el hash recibido
     if (hash !== expectedHash) {
-      return { message: 'Hash validation failed. The hash is invalid.' };
+      throw new HttpException(
+        'Hash validation failed. The hash is invalid.',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     if (!lotteryId) {
@@ -581,6 +606,9 @@ export class TicketsService {
       .delete()
       .eq('lottery_id', lotteryId);
 
-    return { message: 'Tickets deleted successfully' };
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Tickets deleted successfully',
+    };
   }
 }
