@@ -47,7 +47,7 @@ export class TicketsController {
     return this.ticketsService.reset(findTicketDto);
   }
 
-  @Delete('/delete')
+  @Post('/delete')
   delete(@Body() findTicketDto: findTicketDto) {
     return this.ticketsService.delete(findTicketDto);
   }

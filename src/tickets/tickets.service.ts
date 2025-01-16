@@ -552,8 +552,22 @@ export class TicketsService {
   }
 
   async delete(findTicketDto: findTicketDto) {
-    const { sorteo_id: lotteryId } = findTicketDto;
+    const { sorteo_id: lotteryId, hash: hash } = findTicketDto;
     const supabase = this.supabaseService.getClient();
+
+    // Generar el hash esperado
+    const hashNonce = process.env.HASH_NONCE || '';
+    console.log(`sorteo_id=${lotteryId}+nonce=${hashNonce}`);
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(`sorteo_id=${lotteryId}+nonce=${hashNonce}`)
+      .digest('hex');
+    console.log(expectedHash);
+
+    // Validar el hash recibido
+    if (hash !== expectedHash) {
+      return { message: 'Hash validation failed. The hash is invalid.' };
+    }
 
     if (!lotteryId) {
       throw new HttpException(
