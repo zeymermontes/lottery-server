@@ -215,9 +215,9 @@ export class TicketsService {
         );
       }*/
 
-        console.log(numero);
-        console.log(sorteo_id);
-        console.log(ticket);
+      console.log(numero);
+      console.log(sorteo_id);
+      console.log(ticket);
       if (!sorteo_id || numero === undefined) {
         throw new HttpException(
           'Each ticket must have a sorteo_id and a numero',
@@ -316,7 +316,7 @@ export class TicketsService {
             .from('tickets')
             .select('*')
             .eq('sorteo_id', lotteryId)
-            .eq('status', 'Disponible')
+            .neq('status', 'Pagado')
             .range(from, to),
         );
 
@@ -348,17 +348,43 @@ export class TicketsService {
         }
       }
 
+      // Actualizar el status de los tickets expirados
+      const currentDate = new Date();
+      console.log(allTickets[9]);
+      console.log(allTickets[9].expiration);
+      console.log(currentDate);
+      const expiredTickets = allTickets.filter(
+        (ticket) =>
+          ticket.status !== 'Pagado' &&
+          ticket.expiration &&
+          new Date(ticket.expiration) < currentDate,
+      );
+
+      for (const ticket of expiredTickets) {
+        console.log(ticket);
+        const { data, error } = await supabase
+          .from('tickets')
+          .update({ status: 'Disponible', expiration: null })
+          .eq('id', ticket.id);
+
+        if (error) {
+          console.error(`Error updating ticket ${ticket.id}`, error);
+        }
+      }
+
       // Filtrar los tickets que terminan con el número
       /*const filteredData = allTickets.filter((ticket) => {
         const numberString = ticket.numero.toString();
         return numberString.endsWith(number.toString());
       });*/
-      const filteredData = allTickets.filter((ticket) => {
-        const numberString = ticket.numero.toString();
-        return (
-          numberString.endsWith(number.toString()) && ticket.numero !== number
-        );
-      });
+      const filteredData = allTickets
+        .filter((ticket) => {
+          const numberString = ticket.numero.toString();
+          return (
+            numberString.endsWith(number.toString()) && ticket.numero !== number
+          );
+        })
+        .sort((a, b) => a.numero - b.numero);
 
       /*if (filteredData.length === 0) {
         throw new HttpException(
