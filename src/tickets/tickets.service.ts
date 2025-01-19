@@ -411,6 +411,7 @@ export class TicketsService {
       hash,
     } = findTicketRandomDto;
     const supabase = this.supabaseService.getClient();
+
     if (!lotteryId) {
       throw new HttpException(
         'The lottery id is required',
@@ -420,23 +421,18 @@ export class TicketsService {
 
     if (!quantity || isNaN(Number(quantity))) {
       throw new HttpException(
-        'The quantity is required and should be number',
+        'The quantity is required and should be a number',
         HttpStatus.BAD_REQUEST,
       );
     }
 
     // Generar el hash esperado
     const hashNonce = process.env.HASH_NONCE || '';
-    console.log(
-      `sorteo_id=${lotteryId}+cantidad=${quantity}+nonce=${hashNonce}`,
-    );
     const expectedHash = crypto
       .createHash('md5')
       .update(`sorteo_id=${lotteryId}+cantidad=${quantity}+nonce=${hashNonce}`)
       .digest('hex');
-    console.log(expectedHash);
 
-    // Validar el hash recibido
     if (hash !== expectedHash) {
       throw new HttpException(
         'Hash validation failed. The hash is invalid.',
@@ -445,21 +441,94 @@ export class TicketsService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select('*')
-        .eq('sorteo_id', lotteryId)
-        .eq('status', 'Disponible');
+      const pageSize = 1000;
+      let from = 0;
+      let to = pageSize - 1;
+      let promises = [];
+      let allTickets = [];
 
-      const shuffledData = data
+      // Obtener tickets en paralelo
+      while (true) {
+        promises.push(
+          supabase
+            .from('tickets')
+            .select('*')
+            .eq('sorteo_id', lotteryId)
+            .range(from, to),
+        );
+
+        from = to + 1;
+        to = from + pageSize - 1;
+
+        if (promises.length >= 10) {
+          // Procesar un lote de promesas
+          const responses = await Promise.all(promises);
+          responses.forEach(({ data, error }) => {
+            if (error) {
+              throw new HttpException(
+                'An error occurred while fetching tickets',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+              );
+            }
+            if (data) {
+              allTickets = allTickets.concat(data);
+            }
+          });
+
+          promises = [];
+        }
+
+        // Si no hay más tickets en la última consulta, salir del bucle
+        if (from > allTickets.length && promises.length === 0) {
+          break;
+        }
+      }
+
+      // Actualizar el status de tickets expirados y no pagados
+      const currentDate = new Date();
+      const expiredTickets = allTickets.filter(
+        (ticket) =>
+          ticket.status !== 'Pagado' &&
+          ticket.expiration &&
+          new Date(ticket.expiration) < currentDate,
+      );
+
+      for (const ticket of expiredTickets) {
+        const { error: updateError } = await supabase
+          .from('tickets')
+          .update({ status: 'Disponible', expiration: null })
+          .eq('id', ticket.id);
+
+        if (updateError) {
+          console.error(`Error updating ticket ${ticket.id}`, updateError);
+        }
+      }
+
+      // Filtrar los tickets disponibles
+      const availableTickets = allTickets.filter(
+        (ticket) => ticket.status === 'Disponible',
+      );
+
+      if (availableTickets.length === 0) {
+        throw new HttpException(
+          'No available tickets found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // Mezclar los tickets disponibles y seleccionar aleatoriamente
+      const shuffledData = availableTickets
         .sort(() => Math.random() - 0.5)
         .slice(0, quantity);
 
-      return { message: 'tickets found successfully', data: shuffledData };
+      // Ordenar los tickets seleccionados por el campo numero de forma ascendente
+      const sortedData = shuffledData.sort((a, b) => a.numero - b.numero);
+
+      return { message: 'Tickets found successfully', data: sortedData };
     } catch (error) {
       console.error('Error finding tickets', error);
       throw new HttpException(
-        'An error occurred while finding the ticket',
+        'An error occurred while finding the tickets',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
