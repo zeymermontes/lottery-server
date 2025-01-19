@@ -552,7 +552,7 @@ export class TicketsService {
         sorteo_id: lotteryId,
         numero: number,
         owner,
-        minutos_expiracion: expiretionMinuts,
+        expiration: expiration,
         status,
         owner_phone,
         owner_name,
@@ -568,13 +568,13 @@ export class TicketsService {
       }
       const hashNonce = process.env.HASH_NONCE || '';
       console.log(
-        `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+owner_phone${owner_phone}+owner_name+${owner_name}+nonce=${hashNonce}`,
+        `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+nonce=${hashNonce}`,
       );
 
       const expectedHash = crypto
         .createHash('md5')
         .update(
-          `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+owner_phone${owner_phone}+owner_name+${owner_name}+nonce=${hashNonce}`,
+          `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+nonce=${hashNonce}`,
         )
         .digest('hex');
       console.log(expectedHash);
@@ -591,7 +591,7 @@ export class TicketsService {
         sorteo_id: lotteryId,
         numero: number,
         owner,
-        minutos_expiracion: expiretionMinuts,
+        expiration: expiration,
         status,
         owner_name,
         owner_phone,
@@ -640,9 +640,7 @@ export class TicketsService {
             owner_phone,
             status,
             owner,
-            expiration: DateTime.local()
-              .plus({ minutes: expiretionMinuts })
-              .toISO(),
+            expiration: DateTime.local().plus({ minutes: expiration }).toISO(),
           })
           .eq('sorteo_id', lotteryId)
           .eq('numero', number);
