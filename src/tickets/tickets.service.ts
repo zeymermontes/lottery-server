@@ -187,33 +187,33 @@ export class TicketsService {
 
     // Extraer el primer elemento y validar el hash
     const [firstItem, ...rest] = tickets;
-    const { sorteo_id: lotteryId, numero: number, hash } = firstItem as any;
+    //const { sorteo_id: lotteryId, numero: number, hash } = firstItem as any;
 
-    if (!hash) {
-      throw new HttpException(
-        'Hash validation failed. The hash is invalid.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const hashNonce = process.env.HASH_NONCE || '';
-    const expectedHash = crypto
-      .createHash('md5')
-      .update(`numero=${number}+sorteo_id=${lotteryId}+nonce=${hashNonce}`)
-      .digest('hex');
-    console.log(expectedHash);
-    if (hash !== expectedHash) {
-      throw new HttpException(
-        'Hash validation failed. The hash is invalid.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const available: findTicketEndingDto[] = [];
-    const notAvailable: findTicketEndingDto[] = [];
+    const available: number[] = [];
+    const notAvailable: number[] = [];
 
     for (const ticket of tickets) {
-      const { sorteo_id: lotteryId, numero: number } = ticket;
+      const { sorteo_id: lotteryId, numero: number, hash } = ticket;
+
+      if (!hash) {
+        throw new HttpException(
+          `Hash validation failed. The hash is invalidf or number ${ticket.numero}`,
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      const hashNonce = process.env.HASH_NONCE || '';
+      const expectedHash = crypto
+        .createHash('md5')
+        .update(`numero=${number}+sorteo_id=${lotteryId}+nonce=${hashNonce}`)
+        .digest('hex');
+      console.log(expectedHash);
+      if (hash !== expectedHash) {
+        throw new HttpException(
+          `Hash validation failed. The hash is invalidf or number ${ticket.numero}`,
+          HttpStatus.FORBIDDEN,
+        );
+      }
 
       if (!lotteryId || number === undefined) {
         throw new HttpException(
@@ -233,19 +233,19 @@ export class TicketsService {
 
         if (error) {
           console.error(`Error fetching ticket ${number}`, error);
-          notAvailable.push(ticket); // Considerar no Disponible en caso de error
+          notAvailable.push(ticket.numero); // Considerar no Disponible en caso de error
           continue;
         }
 
         // Clasificar según el estado
         if (data?.status === 'Disponible') {
-          available.push(ticket);
+          available.push(ticket.numero);
         } else {
-          notAvailable.push(ticket);
+          notAvailable.push(ticket.numero);
         }
       } catch (error) {
         console.error(`Error processing ticket ${number}`, error);
-        notAvailable.push(ticket); // Considerar no Disponible en caso de error
+        notAvailable.push(ticket.numero); // Considerar no Disponible en caso de error
       }
     }
 
@@ -455,6 +455,8 @@ export class TicketsService {
         owner,
         minutos_expiracion: expiretionMinuts,
         status,
+        owner_phone,
+        owner_name,
         hash,
       } = updateTicketDto;
 
@@ -467,13 +469,13 @@ export class TicketsService {
       }
       const hashNonce = process.env.HASH_NONCE || '';
       console.log(
-        `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+nonce=${hashNonce}`,
+        `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+owner_phone${owner_phone}+owner_name+${owner_name}+nonce=${hashNonce}`,
       );
 
       const expectedHash = crypto
         .createHash('md5')
         .update(
-          `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+nonce=${hashNonce}`,
+          `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiretionMinuts}+status=${status}+owner_phone${owner_phone}+owner_name+${owner_name}+nonce=${hashNonce}`,
         )
         .digest('hex');
       console.log(expectedHash);
@@ -492,6 +494,8 @@ export class TicketsService {
         owner,
         minutos_expiracion: expiretionMinuts,
         status,
+        owner_name,
+        owner_phone,
       } = updateTicketDto;
 
       if (!lotteryId) {
@@ -533,6 +537,8 @@ export class TicketsService {
         const { error: updateError } = await supabase
           .from('tickets')
           .update({
+            owner_name,
+            owner_phone,
             status,
             owner,
             expiration: DateTime.local()
