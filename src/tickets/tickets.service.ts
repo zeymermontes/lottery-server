@@ -256,7 +256,12 @@ export class TicketsService {
   }
 
   async findTicketEndingWith(findTicketEndingDto: findTicketEndingDto) {
-    const { sorteo_id: lotteryId, numero: number, hash } = findTicketEndingDto;
+    const {
+      sorteo_id: lotteryId,
+      numero: number,
+      hash: hash,
+      cantidad_boletos: cantidad_boletos,
+    } = findTicketEndingDto;
     const supabase = this.supabaseService.getClient();
 
     if (!lotteryId) {
@@ -275,10 +280,14 @@ export class TicketsService {
 
     // Generar el hash esperado
     const hashNonce = process.env.HASH_NONCE || '';
-    console.log(`sorteo_id=${lotteryId}+numero=${number}+nonce=${hashNonce}`);
+    console.log(
+      `sorteo_id=${lotteryId}+numero=${number}+cantidad_boletos=${cantidad_boletos}+nonce=${hashNonce}`,
+    );
     const expectedHash = crypto
       .createHash('md5')
-      .update(`sorteo_id=${lotteryId}+numero=${number}+nonce=${hashNonce}`)
+      .update(
+        `sorteo_id=${lotteryId}+numero=${number}+cantidad_boletos=${cantidad_boletos}+nonce=${hashNonce}`,
+      )
       .digest('hex');
     console.log(expectedHash);
 
@@ -330,7 +339,7 @@ export class TicketsService {
           promises = [];
         }
 
-        if (allTickets.length >= 100000) {
+        if (allTickets.length >= number) {
           // Si ya hemos cargado los tickets que necesitamos
           break;
         }

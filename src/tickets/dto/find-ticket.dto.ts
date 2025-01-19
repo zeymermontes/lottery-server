@@ -7,6 +7,7 @@ export class findTicketEndingDto {
   sorteo_id: string;
   numero: number;
   hash: string;
+  cantidad_boletos: number;
 }
 
 export class findTicketRandomDto {
