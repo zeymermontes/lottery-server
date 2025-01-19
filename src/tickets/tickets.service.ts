@@ -74,7 +74,7 @@ export class TicketsService {
       // Lote de boletos a insertar
       const tickets = Array.from({ length: numberTickets }, (_, i) => ({
         lottery_id: lotteryId,
-        number: i,
+        numero: i,
         price,
       }));
       const batchSize = 1000; // Lotes de 1000
@@ -228,7 +228,7 @@ export class TicketsService {
           .from('tickets')
           .select('status')
           .eq('lottery_id', lotteryId)
-          .eq('number', number)
+          .eq('numero', number)
           .single();
 
         if (error) {
@@ -508,7 +508,7 @@ export class TicketsService {
           .from('tickets')
           .select('status')
           .eq('lottery_id', lotteryId)
-          .eq('number', number)
+          .eq('numero', number)
           .single();
 
         if (fetchError) {
@@ -534,7 +534,7 @@ export class TicketsService {
               .toISO(),
           })
           .eq('lottery_id', lotteryId)
-          .eq('number', number);
+          .eq('numero', number);
 
         if (updateError) {
           console.error(`Error updating ticket number ${number}`, updateError);
