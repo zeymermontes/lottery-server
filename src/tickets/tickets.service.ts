@@ -360,12 +360,13 @@ export class TicketsService {
         );
       });
 
-      if (filteredData.length === 0) {
+      /*if (filteredData.length === 0) {
         throw new HttpException(
           'No tickets found for this lottery and number',
           HttpStatus.NOT_FOUND,
         );
-      }
+       // return filteredData;
+      }*/
 
       return { message: 'Tickets found successfully', data: filteredData };
     } catch (error) {
