@@ -189,13 +189,13 @@ export class TicketsService {
     const [firstItem, ...rest] = tickets;
     //const { sorteo_id: lotteryId, numero: number, hash } = firstItem as any;
 
-    const available: number[] = [];
-    const notAvailable: number[] = [];
+    const available: findTicketEndingDto[] = [];
+    const notAvailable: findTicketEndingDto[] = [];
 
     for (const ticket of tickets) {
-      const { sorteo_id: lotteryId, numero: number, hash } = ticket;
+      const { sorteo_id: lotteryId, numero: number } = ticket;
 
-      if (!hash) {
+      /*if (!hash) {
         throw new HttpException(
           `Hash validation failed. The hash is invalidf or number ${ticket.numero}`,
           HttpStatus.FORBIDDEN,
@@ -213,7 +213,7 @@ export class TicketsService {
           `Hash validation failed. The hash is invalidf or number ${ticket.numero}`,
           HttpStatus.FORBIDDEN,
         );
-      }
+      }*/
 
       if (!lotteryId || number === undefined) {
         throw new HttpException(
@@ -233,19 +233,19 @@ export class TicketsService {
 
         if (error) {
           console.error(`Error fetching ticket ${number}`, error);
-          notAvailable.push(ticket.numero); // Considerar no Disponible en caso de error
+          notAvailable.push(ticket); // Considerar no Disponible en caso de error
           continue;
         }
 
         // Clasificar según el estado
         if (data?.status === 'Disponible') {
-          available.push(ticket.numero);
+          available.push(ticket);
         } else {
-          notAvailable.push(ticket.numero);
+          notAvailable.push(ticket);
         }
       } catch (error) {
         console.error(`Error processing ticket ${number}`, error);
-        notAvailable.push(ticket.numero); // Considerar no Disponible en caso de error
+        notAvailable.push(ticket); // Considerar no Disponible en caso de error
       }
     }
 
