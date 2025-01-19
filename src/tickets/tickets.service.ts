@@ -57,7 +57,7 @@ export class TicketsService {
       const { data: existingTickets, error: fetchError } = await supabase
         .from('tickets')
         .select('id')
-        .eq('lottery_id', lotteryId)
+        .eq('sorteo_id', lotteryId)
         .limit(1); // Solo necesitamos saber si hay uno
 
       if (fetchError) {
@@ -73,7 +73,7 @@ export class TicketsService {
 
       // Lote de boletos a insertar
       const tickets = Array.from({ length: numberTickets }, (_, i) => ({
-        lottery_id: lotteryId,
+        sorteo_id: lotteryId,
         numero: i,
         price,
       }));
@@ -147,7 +147,7 @@ export class TicketsService {
           supabase
             .from('tickets')
             .select('*')
-            .eq('lottery_id', lotteryId)
+            .eq('sorteo_id', lotteryId)
             .eq('status', 'Disponible')
             .range(i * pageSize, (i + 1) * pageSize - 1),
         );
@@ -193,7 +193,7 @@ export class TicketsService {
     const notAvailable: findTicketEndingDto[] = [];
 
     for (const ticket of tickets) {
-      const { sorteo_id: lotteryId, numero: number } = ticket;
+      const { sorteo_id: sorteo_id, numero: numero } = ticket;
 
       /*if (!hash) {
         throw new HttpException(
@@ -215,7 +215,10 @@ export class TicketsService {
         );
       }*/
 
-      if (!lotteryId || number === undefined) {
+        console.log(numero);
+        console.log(sorteo_id);
+        console.log(ticket);
+      if (!sorteo_id || numero === undefined) {
         throw new HttpException(
           'Each ticket must have a sorteo_id and a numero',
           HttpStatus.BAD_REQUEST,
@@ -227,12 +230,12 @@ export class TicketsService {
         const { data, error } = await supabase
           .from('tickets')
           .select('status')
-          .eq('lottery_id', lotteryId)
-          .eq('numero', number)
+          .eq('sorteo_id', sorteo_id)
+          .eq('numero', numero)
           .single();
 
         if (error) {
-          console.error(`Error fetching ticket ${number}`, error);
+          console.error(`Error fetching ticket ${numero}`, error);
           notAvailable.push(ticket); // Considerar no Disponible en caso de error
           continue;
         }
@@ -244,7 +247,7 @@ export class TicketsService {
           notAvailable.push(ticket);
         }
       } catch (error) {
-        console.error(`Error processing ticket ${number}`, error);
+        console.error(`Error processing ticket ${numero}`, error);
         notAvailable.push(ticket); // Considerar no Disponible en caso de error
       }
     }
@@ -312,7 +315,7 @@ export class TicketsService {
           supabase
             .from('tickets')
             .select('*')
-            .eq('lottery_id', lotteryId)
+            .eq('sorteo_id', lotteryId)
             .eq('status', 'Disponible')
             .range(from, to),
         );
@@ -418,7 +421,7 @@ export class TicketsService {
       const { data, error } = await supabase
         .from('tickets')
         .select('*')
-        .eq('lottery_id', lotteryId)
+        .eq('sorteo_id', lotteryId)
         .eq('status', 'Disponible');
 
       const shuffledData = data
@@ -517,7 +520,7 @@ export class TicketsService {
         const { data: currentData, error: fetchError } = await supabase
           .from('tickets')
           .select('status')
-          .eq('lottery_id', lotteryId)
+          .eq('sorteo_id', lotteryId)
           .eq('numero', number)
           .single();
 
@@ -545,7 +548,7 @@ export class TicketsService {
               .plus({ minutes: expiretionMinuts })
               .toISO(),
           })
-          .eq('lottery_id', lotteryId)
+          .eq('sorteo_id', lotteryId)
           .eq('numero', number);
 
         if (updateError) {
@@ -589,7 +592,7 @@ export class TicketsService {
     const { data, error } = await supabase
       .from('tickets')
       .update({ status: 'Disponible', owner: null, expiration: null })
-      .eq('lottery_id', lotteryId);
+      .eq('sorteo_id', lotteryId);
 
     return { message: 'Tickets reset successfully' };
   }
@@ -625,7 +628,7 @@ export class TicketsService {
     const { data, error } = await supabase
       .from('tickets')
       .delete()
-      .eq('lottery_id', lotteryId);
+      .eq('sorteo_id', lotteryId);
 
     return {
       statusCode: HttpStatus.OK,
