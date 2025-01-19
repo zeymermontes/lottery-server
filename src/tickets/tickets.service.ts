@@ -346,11 +346,17 @@ export class TicketsService {
       }
 
       // Filtrar los tickets que terminan con el número
-      const filteredData = allTickets.filter((ticket) => {
+      /*const filteredData = allTickets.filter((ticket) => {
         const numberString = ticket.numero.toString();
         return numberString.endsWith(number.toString());
+      });*/
+      const filteredData = allTickets.filter((ticket) => {
+        const numberString = ticket.numero.toString();
+        return (
+          numberString.endsWith(number.toString()) && ticket.numero !== number
+        );
       });
-ß
+
       if (filteredData.length === 0) {
         throw new HttpException(
           'No tickets found for this lottery and number',
