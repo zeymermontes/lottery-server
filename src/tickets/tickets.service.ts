@@ -300,7 +300,24 @@ export class TicketsService {
     }
 
     try {
-      const pageSize = 1000;
+      const { count, error } = await supabase
+        .from('tickets')
+        .select('id', { count: 'exact' }) // Solicita solo el conteo
+        .eq('sorteo_id', lotteryId)
+        .neq('status', 'Pagado'); // Aplica los filtros
+
+      if (error) {
+        console.error('Error fetching ticket count:', error);
+      } else {
+        console.log('Total tickets:', count); // Imprime el total de tickets
+      }
+      let pageSize = 1000;
+      if (count < pageSize) {
+        pageSize = count;
+      }
+      const pagesNumber = Math.ceil(count / pageSize);
+      // console.log(cantidad_boletos); /////////////////////////////////////////////
+
       let from = 0;
       let to = pageSize - 1;
       let promises = [];
@@ -320,11 +337,13 @@ export class TicketsService {
         from = to + 1;
         to = from + pageSize - 1;
 
+        //console.log(promises.length);  /////////////////////////////////////////////
         // Si ya tenemos 1000 resultados, esperar que se completen todas las promesas
-        if (promises.length >= 100) {
+        if (promises.length >= pagesNumber) {
           // Límite a la cantidad de peticiones en paralelo
           const responses = await Promise.all(promises);
           responses.forEach(({ data, error }) => {
+            //console.log(data); /////////////////////////////////////////////
             if (error) {
               throw new HttpException(
                 'An error occurred while finding the tickets',
@@ -336,11 +355,11 @@ export class TicketsService {
               allTickets = allTickets.concat(data);
             }
           });
-
+          console.log(allTickets.length); /////////////////////////////////////////////
           promises = [];
         }
 
-        if (allTickets.length >= cantidad_boletos) {
+        if (allTickets.length >= count) {
           // Si ya hemos cargado los tickets que necesitamos
 
           break;
@@ -441,7 +460,24 @@ export class TicketsService {
     }
 
     try {
-      const pageSize = 1000;
+      const { count, error } = await supabase
+        .from('tickets')
+        .select('id', { count: 'exact' }) // Solicita solo el conteo
+        .eq('sorteo_id', lotteryId)
+        .neq('status', 'Pagado'); // Aplica los filtros
+
+      if (error) {
+        console.error('Error fetching ticket count:', error);
+      } else {
+        console.log('Total tickets:', count); // Imprime el total de tickets
+      }
+      let pageSize = 1000;
+      if (count < pageSize) {
+        pageSize = count;
+      }
+      const pagesNumber = Math.ceil(count / pageSize);
+
+      //const pageSize = 1000;
       let from = 0;
       let to = pageSize - 1;
       let promises = [];
@@ -459,8 +495,8 @@ export class TicketsService {
 
         from = to + 1;
         to = from + pageSize - 1;
-
-        if (promises.length >= 10) {
+        console.log(promises.length); /////////////////////////////////////////////
+        if (promises.length >= pagesNumber) {
           // Procesar un lote de promesas
           const responses = await Promise.all(promises);
           responses.forEach(({ data, error }) => {
@@ -678,9 +714,25 @@ export class TicketsService {
   }
 
   async reset(findTicketDto: findTicketDto) {
-    const { sorteo_id: lotteryId } = findTicketDto;
+    const { sorteo_id: lotteryId, hash } = findTicketDto;
 
     const supabase = this.supabaseService.getClient();
+
+    ///
+    if (!hash) {
+      throw new HttpException(`Hash is required `, HttpStatus.FORBIDDEN);
+    }
+    const hashNonce = process.env.HASH_NONCE || '';
+    console.log(`sorteo_id=${lotteryId}+nonce=${hashNonce}`);
+
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(`sorteo_id=${lotteryId}+nonce=${hashNonce}`)
+      .digest('hex');
+    console.log(expectedHash);
+    if (hash !== expectedHash) {
+      throw new HttpException(`Hash validation failed.`, HttpStatus.FORBIDDEN);
+    }
 
     if (!lotteryId) {
       throw new HttpException(
