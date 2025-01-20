@@ -215,9 +215,6 @@ export class TicketsService {
         );
       }*/
 
-      console.log(numero);
-      console.log(sorteo_id);
-      console.log(ticket);
       if (!sorteo_id || numero === undefined) {
         throw new HttpException(
           'Each ticket must have a sorteo_id and a numero',
@@ -274,7 +271,7 @@ export class TicketsService {
       );
     }
 
-    if (!number || isNaN(Number(number))) {
+    if (number === null || number === undefined || isNaN(Number(number))) {
       throw new HttpException(
         'The number is required and should be a number',
         HttpStatus.BAD_REQUEST,
@@ -324,7 +321,7 @@ export class TicketsService {
         to = from + pageSize - 1;
 
         // Si ya tenemos 1000 resultados, esperar que se completen todas las promesas
-        if (promises.length >= 10) {
+        if (promises.length >= 100) {
           // Límite a la cantidad de peticiones en paralelo
           const responses = await Promise.all(promises);
           responses.forEach(({ data, error }) => {
@@ -335,6 +332,7 @@ export class TicketsService {
               );
             }
             if (data) {
+              //console.log(data);
               allTickets = allTickets.concat(data);
             }
           });
@@ -342,17 +340,18 @@ export class TicketsService {
           promises = [];
         }
 
-        if (allTickets.length >= number) {
+        if (allTickets.length >= cantidad_boletos) {
           // Si ya hemos cargado los tickets que necesitamos
+
           break;
         }
       }
 
       // Actualizar el status de los tickets expirados
       const currentDate = new Date();
-      console.log(allTickets[9]);
-      console.log(allTickets[9].expiration);
-      console.log(currentDate);
+      //console.log(allTickets[9]);
+      //console.log(allTickets[9].expiration);
+      //console.log(currentDate);
       const expiredTickets = allTickets.filter(
         (ticket) =>
           ticket.status !== 'Pagado' &&
@@ -361,7 +360,6 @@ export class TicketsService {
       );
 
       for (const ticket of expiredTickets) {
-        console.log(ticket);
         const { data, error } = await supabase
           .from('tickets')
           .update({ status: 'Disponible', expiration: null })
@@ -380,6 +378,8 @@ export class TicketsService {
       const filteredData = allTickets
         .filter((ticket) => {
           const numberString = ticket.numero.toString();
+          //console.log(numberString);
+          //console.log(number);
           return (
             numberString.endsWith(number.toString()) && ticket.numero !== number
           );
