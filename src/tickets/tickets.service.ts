@@ -464,7 +464,7 @@ export class TicketsService {
         .from('tickets')
         .select('id', { count: 'exact' }) // Solicita solo el conteo
         .eq('sorteo_id', lotteryId)
-        .neq('status', 'Pagado'); // Aplica los filtros
+        .eq('status', 'Disponible'); // Aplica los filtros
 
       if (error) {
         console.error('Error fetching ticket count:', error);
