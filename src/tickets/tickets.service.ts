@@ -620,6 +620,8 @@ export class TicketsService {
           .eq('numero', number)
           .single();
 
+        console.log(lotteryId);
+        console.log(number);
         if (fetchError) {
           console.error(`Error fetching ticket number ${number}`, fetchError);
           failedNumbers.push(number);
@@ -631,7 +633,7 @@ export class TicketsService {
           failedNumbers.push(number);
           continue;
         }
-
+        //  console.log(status);
         // Actualizar el ticket
         const { error: updateError } = await supabase
           .from('tickets')
@@ -640,7 +642,11 @@ export class TicketsService {
             owner_phone,
             status,
             owner,
-            expiration: DateTime.local().plus({ minutes: expiration }).toISO(),
+            //expiration: DateTime.local().plus({ minutes: expiration }).toISO(),
+            expiration: DateTime.local()
+              .setZone('local') // Asegura que tenga la zona horaria
+              .plus({ minutes: expiration }) // Suma los minutos
+              .toJSDate(), // Devuelve un objeto Date compatible con PostgreSQL
           })
           .eq('sorteo_id', lotteryId)
           .eq('numero', number);
