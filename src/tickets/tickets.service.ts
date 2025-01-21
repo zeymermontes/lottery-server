@@ -616,7 +616,7 @@ export class TicketsService {
       console.log(expectedHash);
       if (hash !== expectedHash) {
         throw new HttpException(
-          `Hash validation failed. The hash is invalid in numero ${number}.`,
+          `Hash validation failed. The hash is invalid in numero ${number}. ####sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+nonce=${hashNonce} #####hash ${hash}   ###expected hash ${expectedHash}  `,
           HttpStatus.FORBIDDEN,
         );
       }
@@ -679,10 +679,12 @@ export class TicketsService {
             status,
             owner,
             //expiration: DateTime.local().plus({ minutes: expiration }).toISO(),
-            expiration: DateTime.local()
-              .setZone('local') // Asegura que tenga la zona horaria
-              .plus({ minutes: expiration }) // Suma los minutos
-              .toJSDate(), // Devuelve un objeto Date compatible con PostgreSQL
+            expiration: expiration
+              ? DateTime.local()
+                  .setZone('local') // Asegura que tenga la zona horaria
+                  .plus({ minutes: expiration }) // Suma los minutos
+                  .toJSDate() // Devuelve un objeto Date compatible con PostgreSQL
+              : null,
           })
           .eq('sorteo_id', lotteryId)
           .eq('numero', number);
