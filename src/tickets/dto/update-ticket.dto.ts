@@ -7,4 +7,5 @@ export class UpdateTicketDto {
   owner_phone: string;
   owner_name: string;
   hash: string;
+  request_user: string;
 }

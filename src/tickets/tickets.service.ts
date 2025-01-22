@@ -593,6 +593,7 @@ export class TicketsService {
         owner_phone,
         owner_name,
         hash,
+        request_user,
       } = updateTicketDto;
 
       ///
@@ -604,19 +605,20 @@ export class TicketsService {
       }
       const hashNonce = process.env.HASH_NONCE || '';
       console.log(
-        `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+nonce=${hashNonce}`,
+        `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+request_user=${request_user}+nonce=${hashNonce}`,
       );
 
       const expectedHash = crypto
         .createHash('md5')
         .update(
-          `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+nonce=${hashNonce}`,
+          `sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+request_user=${request_user}+nonce=${hashNonce}`,
         )
         .digest('hex');
       console.log(expectedHash);
       if (hash !== expectedHash) {
         throw new HttpException(
-          `Hash validation failed. The hash is invalid in numero ${number}. ####sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+nonce=${hashNonce} #####hash ${hash}   ###expected hash ${expectedHash}  `,
+          //`Hash validation failed. The hash is invalid in numero ${number}. ####sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+nonce=${hashNonce} #####hash ${hash}   ###expected hash ${expectedHash}  `,
+          `Hash validation failed. The hash is invalid in numero ${number}. ####sorteo_id=${lotteryId}+numero=${number}+owner=${owner}+minutos_expiracion=${expiration}+status=${status}+owner_phone=${owner_phone}+owner_name=${owner_name}+request_user=${request_user}+nonce=${hashNonce} #####hash ${hash}   ###expected hash ${expectedHash}  `,
           HttpStatus.FORBIDDEN,
         );
       }
@@ -631,6 +633,7 @@ export class TicketsService {
         status,
         owner_name,
         owner_phone,
+        request_user,
       } = updateTicketDto;
 
       if (!lotteryId) {
@@ -647,7 +650,7 @@ export class TicketsService {
         );
       }
 
-      try {
+      /* try {
         // Verificar el estado actual del ticket
         const { data: currentData, error: fetchError } = await supabase
           .from('tickets')
@@ -699,7 +702,95 @@ export class TicketsService {
       } catch (error) {
         console.error(`Error processing ticket number ${number}`, error);
         failedNumbers.push(number);
+      }*/
+
+      ///////////
+
+      try {
+        // Verificar el estado actual del ticket
+        const { data: currentData, error: fetchError } = await supabase
+          .from('tickets')
+          .select('status, expiration, owner, owner_phone')
+          .eq('sorteo_id', lotteryId)
+          .eq('numero', number)
+          .single();
+
+        console.log(lotteryId);
+        console.log(number);
+        if (fetchError) {
+          console.error(`Error fetching ticket number ${number}`, fetchError);
+          failedNumbers.push(number);
+          continue;
+        }
+
+        const ticketStatus = currentData?.status;
+        const ticketExpiration = currentData?.expiration
+          ? new Date(currentData.expiration)
+          : null;
+        const ticketOwner = currentData?.owner;
+        const ticketOwnerPhone = currentData?.owner_phone;
+
+        // Verificar si el ticket ya está pagado
+        if (ticketStatus === 'Pagado') {
+          failedNumbers.push(number);
+          continue;
+        }
+
+        // Nueva validación
+        const currentDate = new Date();
+        if (
+          //status != 'Disponible' &&
+          ticketStatus !== 'Disponible' && // Status no es Disponible
+          ticketExpiration &&
+          ticketExpiration > currentDate && // Expiration no ha pasado
+          ((ticketOwner && ticketOwner !== request_user) || // Owner no coincide
+            (!ticketOwner && ticketOwnerPhone !== request_user)) // Owner no existe y OwnerPhone no coincide
+        ) {
+          console.log(ticketOwner && ticketOwner !== owner);
+          console.log(!ticketOwner && ticketOwnerPhone !== owner_phone);
+          console.log(ticketOwnerPhone);
+          console.log(owner_phone);
+          console.error(
+            `Validation failed for ticket number ${number}: Status not Disponible and expiration valid.`,
+          );
+          failedNumbers.push(number);
+          continue;
+        }
+
+        // Actualizar el ticket
+        console.log('owner_phone');
+        console.log(owner_phone);
+        console.log('owner_name');
+        console.log(owner_name);
+        const { error: updateError } = await supabase
+          .from('tickets')
+          .update({
+            owner_name,
+            owner_phone,
+            status,
+            owner,
+            expiration: expiration
+              ? DateTime.local()
+                  .setZone('local') // Asegura que tenga la zona horaria
+                  .plus({ minutes: expiration }) // Suma los minutos
+                  .toJSDate() // Devuelve un objeto Date compatible con PostgreSQL
+              : null,
+          })
+          .eq('sorteo_id', lotteryId)
+          .eq('numero', number);
+
+        if (updateError) {
+          console.error(`Error updating ticket number ${number}`, updateError);
+          failedNumbers.push(number);
+          continue;
+        }
+
+        successUpdates.push(number);
+      } catch (error) {
+        console.error(`Error processing ticket number ${number}`, error);
+        failedNumbers.push(number);
       }
+      ///////////
     }
 
     // Crear el mensaje de respuesta
