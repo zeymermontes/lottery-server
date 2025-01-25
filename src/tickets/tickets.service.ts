@@ -451,7 +451,10 @@ export class TicketsService {
       .createHash('md5')
       .update(`sorteo_id=${lotteryId}+cantidad=${quantity}+nonce=${hashNonce}`)
       .digest('hex');
-
+    console.log(
+      `sorteo_id=${lotteryId}+cantidad=${quantity}+nonce=${hashNonce}`,
+    );
+    console.log(expectedHash);
     if (hash !== expectedHash) {
       throw new HttpException(
         'Hash validation failed. The hash is invalid.',
