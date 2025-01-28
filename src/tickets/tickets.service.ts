@@ -378,7 +378,7 @@ export class TicketsService {
           new Date(ticket.expiration) < currentDate,
       );
 
-      for (const ticket of expiredTickets) {
+      /*for (const ticket of expiredTickets) {
         const { data, error } = await supabase
           .from('tickets')
           .update({ status: 'Disponible', expiration: null })
@@ -387,7 +387,7 @@ export class TicketsService {
         if (error) {
           console.error(`Error updating ticket ${ticket.id}`, error);
         }
-      }
+      }*/
 
       // Filtrar los tickets que terminan con el número
       /*const filteredData = allTickets.filter((ticket) => {
@@ -523,25 +523,33 @@ export class TicketsService {
         }
       }
 
-      // Actualizar el status de tickets expirados y no pagados
-      const currentDate = new Date();
-      const expiredTickets = allTickets.filter(
-        (ticket) =>
-          ticket.status !== 'Pagado' &&
-          ticket.expiration &&
-          new Date(ticket.expiration) < currentDate,
-      );
+      // Actualizar tickets expirados en paralelo
+      (async () => {
+        const currentDate = new Date();
+        const expiredTickets = allTickets.filter(
+          (ticket) =>
+            ticket.status !== 'Pagado' &&
+            ticket.expiration &&
+            new Date(ticket.expiration) < currentDate,
+        );
 
-      for (const ticket of expiredTickets) {
-        const { error: updateError } = await supabase
-          .from('tickets')
-          .update({ status: 'Disponible', expiration: null })
-          .eq('id', ticket.id);
+        for (const ticket of expiredTickets) {
+          const { error: updateError } = await supabase
+            .from('tickets')
+            .update({
+              status: 'Disponible',
+              expiration: null,
+              owner: null,
+              owner_name: null,
+              owner_phone: null,
+            })
+            .eq('id', ticket.id);
 
-        if (updateError) {
-          console.error(`Error updating ticket ${ticket.id}`, updateError);
+          if (updateError) {
+            console.error(`Error updating ticket ${ticket.id}`, updateError);
+          }
         }
-      }
+      })();
 
       // Filtrar los tickets disponibles
       const availableTickets = allTickets.filter(
