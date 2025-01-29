@@ -1016,4 +1016,77 @@ export class TicketsService {
       data: ganadorData,
     };
   }
+
+  async count(findTicketDto: findTicketDto) {
+    const { sorteo_id, hash } = findTicketDto;
+    const supabase = this.supabaseService.getClient();
+
+    try {
+      if (!sorteo_id) {
+        throw new HttpException(
+          'The lottery id is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Generar el hash esperado
+      const hashNonce = process.env.HASH_NONCE || '';
+      const expectedHash = crypto
+        .createHash('md5')
+        .update(`sorteo_id=${sorteo_id}+nonce=${hashNonce}`)
+        .digest('hex');
+
+      // Validar el hash recibido
+      console.log(expectedHash);
+      if (hash !== expectedHash) {
+        throw new HttpException(
+          'Hash validation failed. The hash is invalid.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      // Obtener todos los boletos de un sorteo
+      const { data: tickets, error } = await supabase
+        .from('tickets')
+        .select('status')
+        .eq('sorteo_id', sorteo_id);
+
+      if (error) {
+        throw new HttpException(
+          'Error fetching ticket data',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      // Contadores de boletos
+      let availableCount = 0;
+      let paidCount = 0;
+      let otherCount = 0;
+
+      // Contar cada estado manualmente
+      tickets.forEach((ticket) => {
+        if (ticket.status === 'Disponible') {
+          availableCount++;
+        } else if (ticket.status === 'Pagado') {
+          paidCount++;
+        } else {
+          otherCount++;
+        }
+      });
+
+      // Retornar la respuesta final
+      return {
+        sorteo_id,
+        Disponibles: availableCount,
+        Pagados: paidCount,
+        Otros: otherCount,
+      };
+    } catch (error) {
+      //console.error('Error in count function:', error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

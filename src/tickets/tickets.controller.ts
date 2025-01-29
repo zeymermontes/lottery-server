@@ -58,4 +58,9 @@ export class TicketsController {
   winner(@Body() selectWinnerDto: selectWinnerDto) {
     return this.ticketsService.selectWinner(selectWinnerDto);
   }
+
+  @Post('/count')
+  count(@Body() findTicketDto: findTicketDto) {
+    return this.ticketsService.count(findTicketDto);
+  }
 }
