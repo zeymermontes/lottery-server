@@ -8,6 +8,7 @@ import {
   findTicketRandomDto,
 } from './dto/find-ticket.dto';
 import { SupabaseService } from 'src/supabase/supabase.service';
+import { selectWinnerDto } from './dto/select-winner.dto';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -889,6 +890,130 @@ export class TicketsService {
     return {
       statusCode: HttpStatus.OK,
       message: 'Tickets deleted successfully',
+    };
+  }
+
+  async selectWinner(selectWinnerDto: selectWinnerDto) {
+    const { sorteo_id: lotteryId, numero, hash } = selectWinnerDto;
+
+    const supabase = this.supabaseService.getClient();
+
+    // Validar el hash
+    const hashNonce = process.env.HASH_NONCE || '';
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(`sorteo_id=${lotteryId}+numero=${numero}+nonce=${hashNonce}`)
+      .digest('hex');
+    console.log(expectedHash);
+    if (hash !== expectedHash) {
+      throw new HttpException(
+        'Hash validation failed. The hash is invalid.',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Obtener el ticket con el sorteo_id
+    const { data: ticket, error: ticketError } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('sorteo_id', lotteryId)
+      .eq('numero', numero)
+      .eq('status', 'Pagado')
+      .single();
+
+    if (ticketError || !ticket) {
+      throw new HttpException(
+        'Ticket not found or not paid.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Obtener datos del sorteo para nombreSorteo y fechaSorteo
+    const { data: sorteo, error: sorteoError } = await supabase
+      .from('sorteos')
+      .select('name, endDate')
+      .eq('id', lotteryId)
+      .single();
+
+    if (sorteoError || !sorteo) {
+      throw new HttpException('Sorteo not found.', HttpStatus.NOT_FOUND);
+    }
+
+    let ganadorData: Record<string, any> = {
+      ganador: numero,
+      NameGanador: null,
+      phoneGanador: null,
+      userId: null,
+      PhotoGanador: null,
+    };
+
+    // Validar si el owner está seteado
+    if (ticket.owner) {
+      // Obtener la información del usuario
+      const { data: user } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', ticket.owner)
+        .single();
+
+      // Actualizar datos del ganador con información del usuario (valores null si no se encuentra el usuario)
+      ganadorData = {
+        ...ganadorData,
+        NameGanador: user?.display_name || null,
+        phoneGanador: user?.phone_number || null,
+        userId: user?.id || null,
+        PhotoGanador: user?.photo_url || null,
+      };
+    } else if (ticket.owner_phone) {
+      // Actualizar datos del ganador con información del ticket
+      ganadorData = {
+        ...ganadorData,
+        NameGanador: ticket.owner_name || null,
+        phoneGanador: ticket.owner_phone || null,
+      };
+    }
+
+    // Actualizar el sorteo con los datos del ganador
+    const { error: updateError } = await supabase
+      .from('sorteos')
+      .update({
+        ganador: ganadorData.ganador,
+        NameGanador: ganadorData.NameGanador,
+        phoneGanador: ganadorData.phoneGanador,
+        userId: ganadorData.userId,
+        PhotoGanador: ganadorData.PhotoGanador,
+      })
+      .eq('id', lotteryId);
+
+    if (updateError) {
+      throw new HttpException(
+        'Failed to update lottery data.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Crear una nueva fila en la tabla premios
+    const { error: premiosError } = await supabase.from('premios').insert([
+      {
+        sorteo: lotteryId,
+        nombreSorteo: sorteo.name, // Usando el nombre del sorteo
+        fechaSorteo: sorteo.endDate, // Usando la fecha de fin del sorteo
+        boletoGanador: numero,
+        boletoComprado: numero,
+        GanadorReference: ganadorData.userId || null, // Si existe userId lo asigna
+      },
+    ]);
+
+    if (premiosError) {
+      throw new HttpException(
+        'Failed to insert prize data.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return {
+      message: 'Winner selected and prize recorded successfully.',
+      data: ganadorData,
     };
   }
 }

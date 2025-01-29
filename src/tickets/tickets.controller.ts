@@ -5,8 +5,10 @@ import {
   findTicketDto,
   findTicketEndingDto,
   findTicketRandomDto,
+  
 } from './dto/find-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { selectWinnerDto } from './dto/select-winner.dto';
 
 @Controller('tickets')
 export class TicketsController {
@@ -50,5 +52,10 @@ export class TicketsController {
   @Post('/delete')
   delete(@Body() findTicketDto: findTicketDto) {
     return this.ticketsService.delete(findTicketDto);
+  }
+
+  @Post('/winner')
+  winner(@Body() selectWinnerDto: selectWinnerDto) {
+    return this.ticketsService.selectWinner(selectWinnerDto);
   }
 }
