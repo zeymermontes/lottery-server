@@ -1029,60 +1029,39 @@ export class TicketsService {
         );
       }
 
-      // Generar el hash esperado
+      // Obtener el HASH_NONCE desde variables de entorno
       const hashNonce = process.env.HASH_NONCE || '';
+
+      // Generar el hash esperado
       const expectedHash = crypto
         .createHash('md5')
         .update(`sorteo_id=${sorteo_id}+nonce=${hashNonce}`)
         .digest('hex');
 
       // Validar el hash recibido
-      console.log(expectedHash);
       if (hash !== expectedHash) {
-        throw new HttpException(
-          'Hash validation failed. The hash is invalid.',
-          HttpStatus.FORBIDDEN,
-        );
+        throw new HttpException('Hash validation failed', HttpStatus.FORBIDDEN);
       }
 
-      // Obtener todos los boletos de un sorteo
-      const { data: tickets, error } = await supabase
+      // Consulta optimizada: contar boletos con estado "Disponible"
+      const { count, error } = await supabase
         .from('tickets')
-        .select('status')
-        .eq('sorteo_id', sorteo_id);
+        .select('*', { count: 'exact', head: true }) // No trae datos, solo cuenta
+        .eq('sorteo_id', sorteo_id)
+        .eq('status', 'Disponible');
 
       if (error) {
         throw new HttpException(
-          'Error fetching ticket data',
+          'Error fetching available ticket count',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
-      // Contadores de boletos
-      let availableCount = 0;
-      let paidCount = 0;
-      let otherCount = 0;
-
-      // Contar cada estado manualmente
-      tickets.forEach((ticket) => {
-        if (ticket.status === 'Disponible') {
-          availableCount++;
-        } else if (ticket.status === 'Pagado') {
-          paidCount++;
-        } else {
-          otherCount++;
-        }
-      });
-
-      // Retornar la respuesta final
       return {
         sorteo_id,
-        Disponibles: availableCount,
-        Pagados: paidCount,
-        Otros: otherCount,
+        Disponibles: count || 0,
       };
     } catch (error) {
-      //console.error('Error in count function:', error);
       throw new HttpException(
         'Internal Server Error',
         HttpStatus.INTERNAL_SERVER_ERROR,
