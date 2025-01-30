@@ -1086,11 +1086,12 @@ export class TicketsService {
           HttpStatus.BAD_REQUEST,
         );
       }
-
+      console.log(updateData);
       // Convertir updateData a string ordenado alfabéticamente
       const sortedDataString = JSON.stringify(
         Object.fromEntries(Object.entries(updateData).sort()),
       );
+      console.log(sortedDataString);
 
       // Generar el hash esperado
       const expectedHash = crypto
