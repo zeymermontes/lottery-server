@@ -1206,7 +1206,7 @@ export class TicketsService {
     const hashNonce = process.env.HASH_NONCE || '';
     const expectedHash = crypto
       .createHash('md5')
-      .update(`compraId=${compraId}&nonce=${hashNonce}`)
+      .update(`compraId=${compraId}+nonce=${hashNonce}`)
       .digest('hex');
     console.log(expectedHash);
     if (hash !== expectedHash) {
@@ -1273,7 +1273,7 @@ export class TicketsService {
         );
       }
 
-      return { message: 'User updated successfully', user: data };
+      return { message: 'Compra created successfully', user: data };
     } catch (error) {
       console.log(error);
       throw new HttpException(
