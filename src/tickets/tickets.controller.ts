@@ -80,4 +80,9 @@ export class TicketsController {
   deleteCompra(@Body() DeleteCompraDto: DeleteCompraDto) {
     return this.ticketsService.deleteCompra(DeleteCompraDto);
   }
+
+  @Post('/create-compra')
+  createCompra(@Body() UpdateCompraDto: UpdateCompraDto) {
+    return this.ticketsService.createCompra(UpdateCompraDto);
+  }
 }

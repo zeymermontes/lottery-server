@@ -1228,4 +1228,58 @@ export class TicketsService {
 
     return { message: 'Compra eliminada exitosamente', compraId };
   }
+
+  async createCompra(UpdateCompraDto: UpdateCompraDto) {
+    const { updateData, hash } = UpdateCompraDto;
+    const supabase = this.supabaseService.getClient();
+    const hashNonce = process.env.HASH_NONCE || '';
+
+    try {
+      if (Object.keys(updateData).length === 0) {
+        throw new HttpException(
+          'No fields provided for update',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      console.log(updateData);
+      // Convertir updateData a string ordenado alfabéticamente
+      const sortedDataString = JSON.stringify(updateData);
+      console.log(sortedDataString);
+
+      // Generar el hash esperado
+      const expectedHash = crypto
+        .createHash('md5')
+        .update(`updateData=${sortedDataString}+nonce=${hashNonce}`)
+        .digest('hex');
+
+      console.log(`Expected Hash: ${expectedHash}, Received Hash: ${hash}`);
+
+      // Validar el hash recibido
+      if (hash !== expectedHash) {
+        throw new HttpException('Hash validation failed', HttpStatus.FORBIDDEN);
+      }
+
+      // Actualiza solo los campos enviados en updateData
+      const { data, error } = await supabase
+        .from('compras')
+        .insert([updateData])
+        .select();
+
+      if (error) {
+        console.log(error);
+        throw new HttpException(
+          'Error updating Compra',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return { message: 'User updated successfully', user: data };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
