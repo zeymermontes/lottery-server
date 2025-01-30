@@ -5,10 +5,10 @@ import {
   findTicketDto,
   findTicketEndingDto,
   findTicketRandomDto,
-  
 } from './dto/find-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { selectWinnerDto } from './dto/select-winner.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('tickets')
 export class TicketsController {
@@ -62,5 +62,10 @@ export class TicketsController {
   @Post('/count')
   count(@Body() findTicketDto: findTicketDto) {
     return this.ticketsService.count(findTicketDto);
+  }
+
+  @Post('/update-user')
+  updateUser(@Body() UpdateUserDto: UpdateUserDto) {
+    return this.ticketsService.updateUser(UpdateUserDto);
   }
 }
