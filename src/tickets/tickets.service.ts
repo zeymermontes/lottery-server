@@ -1088,15 +1088,15 @@ export class TicketsService {
       }
       console.log(updateData);
       // Convertir updateData a string ordenado alfabéticamente
-      const sortedDataString = JSON.stringify(
-        Object.fromEntries(Object.entries(updateData).sort()),
-      );
+      const sortedDataString = JSON.stringify(updateData);
       console.log(sortedDataString);
 
       // Generar el hash esperado
       const expectedHash = crypto
         .createHash('md5')
-        .update(`userId=${userId}+updateData=${updateData}+nonce=${hashNonce}`)
+        .update(
+          `userId=${userId}+updateData=${sortedDataString}+nonce=${hashNonce}`,
+        )
         .digest('hex');
 
       console.log(`Expected Hash: ${expectedHash}, Received Hash: ${hash}`);
