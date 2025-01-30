@@ -3,6 +3,7 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateCompraDto } from './dto/update-compras.dto';
+import { DeleteCompraDto } from './dto/update-compras.dto';
 import { DateTime } from 'luxon';
 import {
   findTicketDto,
@@ -1173,8 +1174,9 @@ export class TicketsService {
         .select();
 
       if (error) {
+        console.log(error);
         throw new HttpException(
-          'Error updating user',
+          'Error updating Compra',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
@@ -1187,5 +1189,43 @@ export class TicketsService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async deleteCompra(DeleteCompraDto: DeleteCompraDto) {
+    const { compraId, hash } = DeleteCompraDto;
+    const supabase = this.supabaseService.getClient();
+
+    if (!compraId || !hash) {
+      throw new HttpException(
+        'compraId y hash son requeridos',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Generar el hash esperado
+    const hashNonce = process.env.HASH_NONCE || '';
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(`compraId=${compraId}&nonce=${hashNonce}`)
+      .digest('hex');
+    console.log(expectedHash);
+    if (hash !== expectedHash) {
+      throw new HttpException('Hash validation failed', HttpStatus.FORBIDDEN);
+    }
+
+    // Eliminar la compra en Supabase
+    const { error } = await supabase
+      .from('compras')
+      .delete()
+      .eq('id', compraId);
+
+    if (error) {
+      throw new HttpException(
+        'Error deleting the purchase',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return { message: 'Compra eliminada exitosamente', compraId };
   }
 }
