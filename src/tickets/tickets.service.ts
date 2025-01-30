@@ -2,6 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateCompraDto } from './dto/update-compras.dto';
 import { DateTime } from 'luxon';
 import {
   findTicketDto,
@@ -1122,6 +1123,65 @@ export class TicketsService {
 
       return { message: 'User updated successfully', user: data };
     } catch (error) {
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  async updateCompra(UpdateCompraDto: UpdateCompraDto) {
+    const { compraId, updateData, hash } = UpdateCompraDto;
+    const supabase = this.supabaseService.getClient();
+    const hashNonce = process.env.HASH_NONCE || '';
+
+    try {
+      if (!compraId) {
+        throw new HttpException('User ID is required', HttpStatus.BAD_REQUEST);
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        throw new HttpException(
+          'No fields provided for update',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      console.log(updateData);
+      // Convertir updateData a string ordenado alfabéticamente
+      const sortedDataString = JSON.stringify(updateData);
+      console.log(sortedDataString);
+
+      // Generar el hash esperado
+      const expectedHash = crypto
+        .createHash('md5')
+        .update(
+          `compraId=${compraId}+updateData=${sortedDataString}+nonce=${hashNonce}`,
+        )
+        .digest('hex');
+
+      console.log(`Expected Hash: ${expectedHash}, Received Hash: ${hash}`);
+
+      // Validar el hash recibido
+      if (hash !== expectedHash) {
+        throw new HttpException('Hash validation failed', HttpStatus.FORBIDDEN);
+      }
+
+      // Actualiza solo los campos enviados en updateData
+      const { data, error } = await supabase
+        .from('compras')
+        .update(updateData)
+        .eq('id', compraId)
+        .select();
+
+      if (error) {
+        throw new HttpException(
+          'Error updating user',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return { message: 'User updated successfully', user: data };
+    } catch (error) {
+      console.log(error);
       throw new HttpException(
         'Internal Server Error',
         HttpStatus.INTERNAL_SERVER_ERROR,

@@ -9,6 +9,7 @@ import {
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { selectWinnerDto } from './dto/select-winner.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateCompraDto } from './dto/update-compras.dto';
 
 @Controller('tickets')
 export class TicketsController {
@@ -67,5 +68,10 @@ export class TicketsController {
   @Post('/update-user')
   updateUser(@Body() UpdateUserDto: UpdateUserDto) {
     return this.ticketsService.updateUser(UpdateUserDto);
+  }
+
+  @Post('/update-compra')
+  updateCompra(@Body() UpdateCompraDto: UpdateCompraDto) {
+    return this.ticketsService.updateCompra(UpdateCompraDto);
   }
 }
