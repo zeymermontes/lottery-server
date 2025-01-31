@@ -985,6 +985,7 @@ export class TicketsService {
         phoneGanador: ganadorData.phoneGanador,
         userId: ganadorData.userId,
         PhotoGanador: ganadorData.PhotoGanador,
+        status: 'Ganado',
       })
       .eq('id', lotteryId);
 
