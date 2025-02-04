@@ -307,8 +307,8 @@ export class TicketsService {
       const { count, error } = await supabase
         .from('tickets')
         .select('id', { count: 'exact' }) // Solicita solo el conteo
-        .eq('sorteo_id', lotteryId)
-        .neq('status', 'Pagado'); // Aplica los filtros
+        .eq('sorteo_id', lotteryId);
+      //.neq('status', 'Pagado'); // Aplica los filtros
 
       if (error) {
         console.error('Error fetching ticket count:', error);
