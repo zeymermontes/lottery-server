@@ -334,7 +334,7 @@ export class TicketsService {
             .from('tickets')
             .select('*')
             .eq('sorteo_id', lotteryId)
-            .neq('status', 'Pagado')
+            //.neq('status', 'Pagado')
             .range(from, to),
         );
 
