@@ -21,6 +21,11 @@ export class TicketsController {
     return this.ticketsService.create(createTicketDto);
   }
 
+  @Post('/all-tickets')
+  allTickets(@Body() findTicketDto: findTicketDto) {
+    return this.ticketsService.allTickets(findTicketDto);
+  }
+
   @Post('/find')
   find(@Body() findTicketDto: findTicketDto) {
     return this.ticketsService.find(findTicketDto);

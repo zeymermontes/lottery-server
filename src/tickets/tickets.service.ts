@@ -112,7 +112,7 @@ export class TicketsService {
     }
   }
 
-  async find(findTicketDto: findTicketDto) {
+  async allTickets(findTicketDto: findTicketDto) {
     const { sorteo_id: lotteryId, hash } = findTicketDto;
     const supabase = this.supabaseService.getClient();
 
@@ -141,6 +141,75 @@ export class TicketsService {
         );
       }
 
+      const pageSize = 1000; // Aún usando paginación
+      const currentPageCount = 100; // Número de páginas que deseas cargar en paralelo
+      let allData = [];
+      const pageRequests = [];
+
+      for (let i = 0; i < currentPageCount; i++) {
+        pageRequests.push(
+          supabase
+            .from('tickets')
+            .select('*')
+            .eq('sorteo_id', lotteryId)
+            //.eq('status', 'Disponible')
+            .range(i * pageSize, (i + 1) * pageSize - 1)
+            .order('numero', { ascending: true }),
+        );
+      }
+
+      const responses = await Promise.all(pageRequests);
+
+      responses.forEach((response) => {
+        if (response.error) {
+          throw new HttpException(
+            'An error occurred while fetching tickets',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+        allData = [...allData, ...response.data];
+      });
+
+      return { message: 'Tickets found successfully', data: allData };
+    } catch (error) {
+      console.error('Error finding tickets', error);
+      throw new HttpException(
+        'An error occurred while finding the ticket',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async find(findTicketDto: findTicketDto) {
+    const { sorteo_id: lotteryId, hash } = findTicketDto;
+    const supabase = this.supabaseService.getClient();
+
+    try {
+      if (!lotteryId) {
+        throw new HttpException(
+          'The lottery id is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Generar el hash esperado
+      const hashNonce = process.env.HASH_NONCE || '';
+      console.log(`sorteo_id=${lotteryId}+nonce=${hashNonce}`);
+      const expectedHash = crypto
+        .createHash('md5')
+        .update(`sorteo_id=${lotteryId}+nonce=${hashNonce}`)
+        .digest('hex');
+      console.log(expectedHash);
+
+      // Validar el hash recibido
+      if (hash !== expectedHash) {
+        console.log('Hash validation failed. The hash is invalid.');
+        throw new HttpException(
+          'Hash validation failed. The hash is invalid.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+      console.log(expectedHash);
       const pageSize = 1000; // Aún usando paginación
       const currentPageCount = 100; // Número de páginas que deseas cargar en paralelo
       let allData = [];
