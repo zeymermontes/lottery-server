@@ -1303,6 +1303,7 @@ export class TicketsService {
     const { updateData, hash } = UpdateCompraDto;
     const supabase = this.supabaseService.getClient();
     const hashNonce = process.env.HASH_NONCE || '';
+    const jwtSecret = process.env.SUPABASE_JWT_SECRET || '';
 
     try {
       if (Object.keys(updateData).length === 0) {
