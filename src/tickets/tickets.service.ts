@@ -990,7 +990,7 @@ export class TicketsService {
       .select('*')
       .eq('sorteo_id', lotteryId)
       .eq('numero', numero)
-      .eq('status', 'Pagado')
+      //.eq('status', 'Pagado')
       .single();
 
     if (ticketError || !ticket) {
