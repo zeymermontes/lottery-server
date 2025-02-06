@@ -1303,7 +1303,6 @@ export class TicketsService {
     const { updateData, hash } = UpdateCompraDto;
     const supabase = this.supabaseService.getClient();
     const hashNonce = process.env.HASH_NONCE || '';
-    const jwtSecret = process.env.SUPABASE_JWT_SECRET || '';
 
     try {
       if (Object.keys(updateData).length === 0) {
@@ -1312,15 +1311,17 @@ export class TicketsService {
           HttpStatus.BAD_REQUEST,
         );
       }
+
       console.log(updateData);
-      // Convertir updateData a string ordenado alfabéticamente
-      const sortedDataString = JSON.stringify(updateData);
-      console.log(sortedDataString);
+
+      // Convertir updateData a string sin ordenar
+      const dataString = JSON.stringify(updateData);
+      console.log(dataString);
 
       // Generar el hash esperado
       const expectedHash = crypto
         .createHash('md5')
-        .update(`updateData=${sortedDataString}+nonce=${hashNonce}`)
+        .update(`updateData=${dataString}+nonce=${hashNonce}`)
         .digest('hex');
 
       console.log(`Expected Hash: ${expectedHash}, Received Hash: ${hash}`);
@@ -1330,21 +1331,61 @@ export class TicketsService {
         throw new HttpException('Hash validation failed', HttpStatus.FORBIDDEN);
       }
 
-      // Actualiza solo los campos enviados en updateData
-      const { data, error } = await supabase
+      // Insertar la compra
+      const { data: compraData, error: compraError } = await supabase
         .from('compras')
         .insert([updateData])
         .select();
 
-      if (error) {
-        console.log(error);
+      if (compraError) {
+        console.log(compraError);
         throw new HttpException(
-          'Error updating Compra',
+          'Error creating Compra',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
-      return { message: 'Compra created successfully', user: data };
+      // Si es una Venta y está Pagado, actualizar saldo del usuario
+      if (updateData.type === 'Venta' && updateData.status === 'Pagado') {
+        const aprobadoId = updateData.aprobado; // ID del usuario aprobado
+        const totalCompra = updateData.totalCompra; // Total de la compra
+
+        // Buscar al usuario
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('saldo, comision')
+          .eq('id', aprobadoId)
+          .single();
+
+        if (userError || !userData) {
+          console.log(userError);
+          throw new HttpException(
+            'User not found for saldo update',
+            HttpStatus.NOT_FOUND,
+          );
+        }
+
+        const { saldo, comision } = userData;
+        const comisionDecimal = comision / 100; // Convertir porcentaje a decimal
+        const montoFinal = totalCompra - totalCompra * comisionDecimal;
+        const nuevoSaldo = saldo + montoFinal;
+
+        // Actualizar saldo del usuario
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ saldo: nuevoSaldo })
+          .eq('id', aprobadoId);
+
+        if (updateError) {
+          console.log(updateError);
+          throw new HttpException(
+            'Error updating user saldo',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      }
+
+      return { message: 'Compra created successfully', compra: compraData };
     } catch (error) {
       console.log(error);
       throw new HttpException(
