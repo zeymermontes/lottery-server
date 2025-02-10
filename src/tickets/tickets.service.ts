@@ -13,19 +13,20 @@ import {
 import { SupabaseService } from 'src/supabase/supabase.service';
 import { selectWinnerDto } from './dto/select-winner.dto';
 import * as crypto from 'crypto';
+import { Request } from 'express';
 
 @Injectable()
 export class TicketsService {
   constructor(private supabaseService: SupabaseService) {}
 
-  async create(createTicketDto: CreateTicketDto) {
+  async create(createTicketDto: CreateTicketDto, req: Request) {
     const {
       cantidad_boletos: numberTickets,
       sorteo_id: lotteryId,
       price,
       hash,
     } = createTicketDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     // Generar el hash esperado
     const hashNonce = process.env.HASH_NONCE || '';
@@ -112,9 +113,9 @@ export class TicketsService {
     }
   }
 
-  async allTickets(findTicketDto: findTicketDto) {
+  async allTickets(findTicketDto: findTicketDto, req: Request) {
     const { sorteo_id: lotteryId, hash } = findTicketDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     try {
       if (!lotteryId) {
@@ -180,9 +181,9 @@ export class TicketsService {
     }
   }
 
-  async find(findTicketDto: findTicketDto) {
+  async find(findTicketDto: findTicketDto, req: Request) {
     const { sorteo_id: lotteryId, hash } = findTicketDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     try {
       if (!lotteryId) {
@@ -248,8 +249,8 @@ export class TicketsService {
     }
   }
 
-  async findAvailable(tickets: findTicketEndingDto[]) {
-    const supabase = this.supabaseService.getClient();
+  async findAvailable(tickets: findTicketEndingDto[], req: Request) {
+    const supabase = this.supabaseService.getClient(req);
 
     if (!Array.isArray(tickets) || tickets.length === 0) {
       throw new HttpException(
@@ -328,14 +329,17 @@ export class TicketsService {
     };
   }
 
-  async findTicketEndingWith(findTicketEndingDto: findTicketEndingDto) {
+  async findTicketEndingWith(
+    findTicketEndingDto: findTicketEndingDto,
+    req: Request,
+  ) {
     const {
       sorteo_id: lotteryId,
       numero: number,
       hash: hash,
       cantidad_boletos: cantidad_boletos,
     } = findTicketEndingDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     if (!lotteryId) {
       throw new HttpException(
@@ -496,13 +500,13 @@ export class TicketsService {
     }
   }
 
-  async random(findTicketRandomDto: findTicketRandomDto) {
+  async random(findTicketRandomDto: findTicketRandomDto, req: Request) {
     const {
       sorteo_id: lotteryId,
       cantidad: quantity,
       hash,
     } = findTicketRandomDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     if (!lotteryId) {
       throw new HttpException(
@@ -654,8 +658,8 @@ export class TicketsService {
     }
   }
 
-  async update(updateTicketDtos: UpdateTicketDto[]) {
-    const supabase = this.supabaseService.getClient();
+  async update(updateTicketDtos: UpdateTicketDto[], req: Request) {
+    const supabase = this.supabaseService.getClient(req);
 
     if (!Array.isArray(updateTicketDtos) || updateTicketDtos.length === 0) {
       throw new HttpException(
@@ -890,10 +894,10 @@ export class TicketsService {
     };
   }
 
-  async reset(findTicketDto: findTicketDto) {
+  async reset(findTicketDto: findTicketDto, req: Request) {
     const { sorteo_id: lotteryId, hash } = findTicketDto;
 
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     ///
     if (!hash) {
@@ -926,9 +930,9 @@ export class TicketsService {
     return { message: 'Tickets reset successfully' };
   }
 
-  async delete(findTicketDto: findTicketDto) {
+  async delete(findTicketDto: findTicketDto, req: Request) {
     const { sorteo_id: lotteryId, hash: hash } = findTicketDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     // Generar el hash esperado
     const hashNonce = process.env.HASH_NONCE || '';
@@ -965,10 +969,10 @@ export class TicketsService {
     };
   }
 
-  async selectWinner(selectWinnerDto: selectWinnerDto) {
+  async selectWinner(selectWinnerDto: selectWinnerDto, req: Request) {
     const { sorteo_id: lotteryId, numero, hash } = selectWinnerDto;
 
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     // Validar el hash
     const hashNonce = process.env.HASH_NONCE || '';
@@ -1090,9 +1094,9 @@ export class TicketsService {
     };
   }
 
-  async count(findTicketDto: findTicketDto) {
+  async count(findTicketDto: findTicketDto, req: Request) {
     const { sorteo_id, hash } = findTicketDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     try {
       if (!sorteo_id) {
@@ -1142,9 +1146,9 @@ export class TicketsService {
     }
   }
 
-  async updateUser(UpdateUserDto: UpdateUserDto) {
+  async updateUser(UpdateUserDto: UpdateUserDto, req: Request) {
     const { userId, updateData, hash } = UpdateUserDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
     const hashNonce = process.env.HASH_NONCE || '';
 
     try {
@@ -1200,9 +1204,9 @@ export class TicketsService {
       );
     }
   }
-  async updateCompra(UpdateCompraDto: UpdateCompraDto) {
+  async updateCompra(UpdateCompraDto: UpdateCompraDto, req: Request) {
     const { compraId, updateData, hash } = UpdateCompraDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
     const hashNonce = process.env.HASH_NONCE || '';
 
     try {
@@ -1261,9 +1265,9 @@ export class TicketsService {
     }
   }
 
-  async deleteCompra(DeleteCompraDto: DeleteCompraDto) {
+  async deleteCompra(DeleteCompraDto: DeleteCompraDto, req: Request) {
     const { compraId, hash } = DeleteCompraDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
 
     if (!compraId || !hash) {
       throw new HttpException(
@@ -1299,9 +1303,9 @@ export class TicketsService {
     return { message: 'Compra eliminada exitosamente', compraId };
   }
 
-  async createCompra(UpdateCompraDto: UpdateCompraDto) {
+  async createCompra(UpdateCompraDto: UpdateCompraDto, req: Request) {
     const { updateData, hash } = UpdateCompraDto;
-    const supabase = this.supabaseService.getClient();
+    const supabase = this.supabaseService.getClient(req);
     const hashNonce = process.env.HASH_NONCE || '';
 
     try {
