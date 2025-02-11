@@ -8,28 +8,25 @@ export class SupabaseService {
 
   constructor() {}
 
+  // Método para configurar el cliente de Supabase basado en el parámetro "entorno"
   setClient(req: Request): SupabaseClient {
-    // Verifica si 'host' existe en la solicitud
-    const host = req['host'];
-    if (!host) {
-      throw new Error('Host no encontrado en la solicitud.');
-    }
+    // Obtener el parámetro 'entorno' de la solicitud
+    const entorno = req.body.entorno;
 
     let supabaseUrl: string;
     let supabaseKey: string;
 
-    console.log(host);
-    // Verifica si el host es el de stage o producción
-    if (host === 'lagarra.flutterflow.app') {
+    // Verifica si el entorno es "stage" o "produccion"
+    if (entorno === 'stage') {
       // Configuración de Stage
       supabaseUrl = process.env.SUPABASE_URL_STAGE;
       supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY_STAGE;
-    } else if (host === 'lagarra.mx') {
+    } else if (entorno === 'produccion') {
       // Configuración de Producción
       supabaseUrl = process.env.SUPABASE_URL_PROD;
       supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY_PROD;
     } else {
-      throw new Error('Host desconocido');
+      throw new Error('Entorno desconocido');
     }
 
     if (!supabaseUrl || !supabaseKey) {
