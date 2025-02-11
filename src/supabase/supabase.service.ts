@@ -8,14 +8,17 @@ export class SupabaseService {
 
   constructor() {}
 
-  // Método para configurar el cliente de Supabase basado en el host
   setClient(req: Request): SupabaseClient {
-    // Obtener el host de la petición
+    // Verifica si 'host' existe en la solicitud
     const host = req['host'];
+    if (!host) {
+      throw new Error('Host no encontrado en la solicitud.');
+    }
 
     let supabaseUrl: string;
     let supabaseKey: string;
 
+    console.log(host);
     // Verifica si el host es el de stage o producción
     if (host === 'lagarra.flutterflow.app') {
       // Configuración de Stage
