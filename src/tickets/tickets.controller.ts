@@ -34,10 +34,10 @@ export class TicketsController {
 
   @Post('/findAvailable')
   findAvailable(
-    @Body() findTicketEndingDto: findTicketEndingDto[],
+    @Body() body: { entorno: string; tickets: findTicketEndingDto[] },
     @Req() req: Request,
   ) {
-    return this.ticketsService.findAvailable(findTicketEndingDto, req);
+    return this.ticketsService.findAvailable(body, req);
   }
 
   @Post('/end-with')
@@ -57,8 +57,11 @@ export class TicketsController {
   }
 
   @Patch('/update')
-  remove(@Body() updateTicketDto: UpdateTicketDto[], @Req() req: Request) {
-    return this.ticketsService.update(updateTicketDto, req);
+  updateTickets(
+    @Body() body: { entorno: string; tickets: UpdateTicketDto[] },
+    @Req() req: Request,
+  ) {
+    return this.ticketsService.update(body, req);
   }
 
   @Post('/reset')

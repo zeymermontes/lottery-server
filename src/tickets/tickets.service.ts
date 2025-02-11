@@ -267,8 +267,15 @@ export class TicketsService {
     }
   }
 
-  async findAvailable(tickets: findTicketEndingDto[], req: Request) {
-    const supabase = this.supabaseService.getClient(req);
+  async findAvailable(
+    body: { entorno: string; tickets: findTicketEndingDto[] },
+    req: Request,
+  ) {
+    const { entorno, tickets } = body;
+
+    if (!entorno) {
+      throw new HttpException('Entorno is required', HttpStatus.BAD_REQUEST);
+    }
 
     if (!Array.isArray(tickets) || tickets.length === 0) {
       throw new HttpException(
@@ -276,6 +283,7 @@ export class TicketsService {
         HttpStatus.BAD_REQUEST,
       );
     }
+    const supabase = this.supabaseService.getClient(req);
 
     // Extraer el primer elemento y validar el hash
     const [firstItem, ...rest] = tickets;
@@ -473,7 +481,7 @@ export class TicketsService {
           new Date(ticket.expiration) < currentDate,
       );
 
-      /*for (const ticket of expiredTickets) {
+      for (const ticket of expiredTickets) {
         const { data, error } = await supabase
           .from('tickets')
           .update({ status: 'Disponible', expiration: null })
@@ -482,7 +490,7 @@ export class TicketsService {
         if (error) {
           console.error(`Error updating ticket ${ticket.id}`, error);
         }
-      }*/
+      }
 
       // Filtrar los tickets que terminan con el número
       /*const filteredData = allTickets.filter((ticket) => {
@@ -685,8 +693,15 @@ export class TicketsService {
     }
   }
 
-  async update(updateTicketDtos: UpdateTicketDto[], req: Request) {
-    const supabase = this.supabaseService.getClient(req);
+  async update(
+    body: { entorno: string; tickets: UpdateTicketDto[] },
+    req: Request,
+  ) {
+    const { entorno, tickets: updateTicketDtos } = body;
+
+    if (!entorno) {
+      throw new HttpException('Entorno is required', HttpStatus.BAD_REQUEST);
+    }
 
     if (!Array.isArray(updateTicketDtos) || updateTicketDtos.length === 0) {
       throw new HttpException(
@@ -694,6 +709,8 @@ export class TicketsService {
         HttpStatus.BAD_REQUEST,
       );
     }
+
+    const supabase = this.supabaseService.getClient(req);
 
     const failedNumbers: number[] = [];
     const successUpdates: number[] = [];
