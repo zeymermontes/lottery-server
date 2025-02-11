@@ -28,6 +28,15 @@ export class TicketsService {
     } = createTicketDto;
     const supabase = this.supabaseService.getClient(req);
 
+    // Obtener el parámetro 'entorno' de req.body
+    const entorno = req.body?.entorno;
+    if (!entorno) {
+      throw new HttpException(
+        'Entorno no especificado',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     // Generar el hash esperado
     const hashNonce = process.env.HASH_NONCE || '';
     console.log(
@@ -116,6 +125,15 @@ export class TicketsService {
   async allTickets(findTicketDto: findTicketDto, req: Request) {
     const { sorteo_id: lotteryId, hash } = findTicketDto;
     const supabase = this.supabaseService.getClient(req);
+
+    // Obtener el parámetro 'entorno' de req.body
+    const entorno = req.body?.entorno;
+    if (!entorno) {
+      throw new HttpException(
+        'Entorno no especificado',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     try {
       if (!lotteryId) {
@@ -507,6 +525,15 @@ export class TicketsService {
       hash,
     } = findTicketRandomDto;
     const supabase = this.supabaseService.getClient(req);
+
+    // Obtener el parámetro 'entorno' de req.body
+    const entorno = req.body?.entorno;
+    if (!entorno) {
+      throw new HttpException(
+        'Entorno no especificado',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     if (!lotteryId) {
       throw new HttpException(
