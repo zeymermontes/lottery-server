@@ -10,8 +10,12 @@ export class SupabaseService {
 
   // Método para configurar el cliente de Supabase basado en el parámetro "entorno"
   setClient(req: Request): SupabaseClient {
-    // Obtener el parámetro 'entorno' de la solicitud
-    const entorno = req.body.entorno;
+    console.log(req.body); // Deberías ver el cuerpo JSON aquí
+
+    const entorno = req.body?.entorno;
+    if (!entorno) {
+      throw new Error('Entorno no especificado');
+    }
 
     let supabaseUrl: string;
     let supabaseKey: string;
