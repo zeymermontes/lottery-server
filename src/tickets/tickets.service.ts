@@ -458,7 +458,7 @@ export class TicketsService {
               allTickets = allTickets.concat(data);
             }
           });
-          console.log(allTickets.length); /////////////////////////////////////////////
+          console.log(`All tickets Length: ${allTickets.length}`); /////////////////////////////////////////////
           promises = [];
         }
 
@@ -610,7 +610,7 @@ export class TicketsService {
 
         from = to + 1;
         to = from + pageSize - 1;
-        console.log(promises.length); /////////////////////////////////////////////
+        console.log(`Promises length: ${promises.length}`); /////////////////////////////////////////////
         if (promises.length >= pagesNumber) {
           // Procesar un lote de promesas
           const responses = await Promise.all(promises);
@@ -847,8 +847,8 @@ export class TicketsService {
           .eq('numero', number)
           .single();
 
-        console.log(lotteryId);
-        console.log(number);
+        console.log(`Lottery ID: ${lotteryId}`);
+        console.log(`number: ${number}`);
         if (fetchError) {
           console.error(`Error fetching ticket number ${number}`, fetchError);
           failedNumbers.push(number);
